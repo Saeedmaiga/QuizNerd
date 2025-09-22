@@ -7,8 +7,9 @@ const QuestionCard = ({
   selected,
   current,
   total,
+  options, // <-- add options prop
 }) => {
-  const { question, options, answer } = data;
+  const { question, answer } = data; // no longer destructure options from data
 
   const getButtonStyle = (option) => {
     if (!showFeedback) {
@@ -35,9 +36,7 @@ const QuestionCard = ({
       <div className="grid gap-3">
         {options.map((option, index) => (
           <button
-            className={`${getButtonStyle(
-              option
-            )} text-left px-4 py-3 cursor-pointer rounded-lg text-white `}
+            className={`${getButtonStyle(option)} text-left px-4 py-3 cursor-pointer rounded-lg text-white `}
             key={index}
             onClick={() => onAnswer(option)}
             disabled={showFeedback}
