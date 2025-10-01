@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import Confetti from "react-confetti";
 
 import QuestionCard from "./components/QuestionCard";
 import StartScreen from "./components/StartScreen.jsx"; // from SimonBranch
-import Timer from "./components/Timer";                  // from SimonBranch
+import Timer from "./components/Timer";
+import CelebrationAnimation from "./components/CelebrationAnimation";                  // from SimonBranch
 
 import LoginButton from "./components/LoginButton";      // from main
 import LogoutButton from "./components/LogoutButton";    // from main
 import QuizSelector from "./components/QuizSelector";    // from main
 import LoadingSpinner from "./components/LoadingSpinner";// from main
+import ThemeToggle from "./components/ThemeToggle";       // NEW
+import SoundControls from "./components/SoundControls";   // NEW
 import apiService from "./services/api";                 // from main
 
 // local questions support (SimonBranch)
@@ -31,6 +34,108 @@ function App() {
   const [remaining5050, setRemaining5050] = useState(1);
   const [visibleOptions, setVisibleOptions] = useState([]);
   const [quizStarted, setQuizStarted] = useState(false);
+  
+  // Hint system
+  const [remainingHints, setRemainingHints] = useState(3);
+  const [currentHint, setCurrentHint] = useState("");
+  const [hintUsed, setHintUsed] = useState(false);
+
+  // Celebration Animation state
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationType, setCelebrationType] = useState('');
+
+  // Theme & Sound state
+  const [theme, setTheme] = useState('dark');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [musicEnabled, setMusicEnabled] = useState(false);
+  const [backgroundMusic, setBackgroundMusic] = useState(null);
+
+  // Animation state
+  const [questionTransition, setQuestionTransition] = useState(false);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('quiz-theme') || 'dark';
+    const savedSound = localStorage.getItem('quiz-sound') === 'true' || true;
+    const savedMusic = localStorage.getItem('quiz-music') === 'true' || false;
+    
+    setTheme(savedTheme);
+    setSoundEnabled(savedSound);
+    setMusicEnabled(savedMusic);
+    
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    document.documentElement.classList.toggle('light', savedTheme === 'light');
+  }, []);
+
+  // Update theme class when theme changes
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.classList.toggle('light', theme === 'light');
+    localStorage.setItem('quiz-theme', theme);
+  }, [theme]);
+
+  // Save sound preferences
+  useEffect(() => {
+    localStorage.setItem('quiz-sound', soundEnabled.toString());
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('quiz-music', musicEnabled.toString());
+  }, [musicEnabled]);
+
+  // Sound effects setup
+  const playSound = useCallback((soundName) => {
+    if (!soundEnabled) return;
+    
+    const soundMap = {
+      correct: new Audio('/sounds/correct.mp3'),
+      incorrect: new Audio('/sounds/incorrect.mp3'),
+      click: new Audio('/sounds/click.mp3'),
+      hint: new Audio('/sounds/hint.mp3'),
+      milestone: new Audio('/sounds/milestone.mp3'),
+      complete: new Audio('/sounds/complete.mp3')
+    };
+    
+    try {
+      const audio = soundMap[soundName];
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(e => console.log('Audio play failed:', e));
+      }
+    } catch (error) {
+      console.error('Sound error:', error);
+    }
+  }, [soundEnabled]);
+
+  // Background music setup
+  useEffect(() => {
+    if (musicEnabled && !backgroundMusic) {
+      const music = new Audio('/music/background.mp3');
+      music.loop = true;
+      music.volume = 0.3;
+      setBackgroundMusic(music);
+      
+      music.play().catch(e => console.log('Background music failed:', e));
+    } else if (!musicEnabled && backgroundMusic) {
+      backgroundMusic.pause();
+      setBackgroundMusic(null);
+    }
+  }, [musicEnabled, backgroundMusic]);
+
+  const getThemeClasses = () => {
+    return {
+      bg: theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50',
+      text: theme === 'dark' ? 'text-white' : 'text-gray-900',
+      panelBg: theme === 'dark' ? 'bg-gray-800' : 'bg-white',
+      border: theme === 'dark' ? 'border-gray-700' : 'border-gray-200',
+      accent: theme === 'dark' ? 'text-purple-400' : 'text-purple-600',
+      button: theme === 'dark' 
+        ? 'bg-gradient-to-r from-indigo-600 to-purple-600' 
+        : 'bg-gradient-to-r from-indigo-500 to-purple-500'
+    };
+  };
+
+  const themeClasses = getThemeClasses();
 
   // Fetch/UI state (from main)
   const [loading, setLoading] = useState(false);
@@ -53,9 +158,15 @@ function App() {
     setStreak(0);
     setRemaining5050(1);
     setVisibleOptions([]);
+    setRemainingHints(3);
+    setCurrentHint("");
+    setHintUsed(false);
+    setShowCelebration(false);
+    setCelebrationType("");
   };
 
   const startNewQuiz = () => {
+    playSound('click');
     setShowQuizSelector(true);
     setQuestions([]);
     resetQuiz();
@@ -118,26 +229,61 @@ function App() {
   };
 
   const handleQuizStart = (config) => {
+    playSound('click');
     setQuizConfig(config);
     fetchQuestions(config);
+  };
+
+  const triggerCelebration = (streak, currentScore, totalQuestions) => {
+    const percentage = (currentScore / totalQuestions) * 100;
+    let celebrationType = '';
+    
+    if (streak === 5) {
+      celebrationType = 'streak-5';
+    } else if (streak === 10) {
+      celebrationType = 'streak-10';
+    } else if (streak === 15) {
+      celebrationType = 'streak-15';
+    } else if (percentage === 100 && currentQuestion === totalQuestions - 1) {
+      celebrationType = 'perfect';
+    }
+
+    if (celebrationType) {
+      setCelebrationType(celebrationType);
+      setShowCelebration(true);
+      setTimeout(() => {
+        setShowCelebration(false);
+        setCelebrationType("");
+      }, 3000);
+    }
   };
 
   const handleAnswer = (option) => {
     if (showFeedback) return;
 
+    playSound('click');
     setSelectedAnswer(option);
     setShowFeedback(true);
 
     if (option === questions[currentQuestion].answer) {
+      playSound('correct');
       setScore((s) => s + 1);
       const newStreak = streak + 1;
       setStreak(newStreak);
 
-      // bonus 50/50 every 10 streak
+    
+      triggerCelebration(newStreak, score + 1, questions.length);
+
+      // bonus 50/50 every 10 streak, bonus hint every 5 streak
       if (newStreak % 10 === 0) {
         setRemaining5050((r) => r + 1);
+        playSound('milestone');
+      }
+      if (newStreak % 5 === 0) {
+        setRemainingHints((r) => r + 1);
       }
     } else {
+      playSound('incorrect');
       setStreak(0);
     }
   };
@@ -145,6 +291,7 @@ function App() {
   const use5050 = () => {
     if (remaining5050 <= 0) return;
 
+    playSound('click');
     const allOptions = questions[currentQuestion].options;
     const correct = questions[currentQuestion].answer;
 
@@ -156,18 +303,104 @@ function App() {
     setRemaining5050((r) => r - 1);
   };
 
+  const useHint = () => {
+    if (remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback) return;
+
+    playSound('hint');
+    const question = questions[currentQuestion];
+    const correctAnswer = question.answer;
+    
+    // Generate different types of hints based on the question content
+    let hint = "";
+    
+    if (question.category === "Science" || question.question.toLowerCase().includes("chemical")) {
+      // Science hints
+      if (correctAnswer.toLowerCase().includes("oxygen")) {
+        hint = "💨 This element is essential for breathing...";
+      } else if (correctAnswer.toLowerCase().includes("carbon")) {
+        hint = "🌍 This element is the basis of all organic life...";
+      } else if (correctAnswer.toLowerCase().includes("water")) {
+        hint = "💧 The boiling point is 100°C at sea level...";
+      } else {
+        hint = "🔬 Think about what scientists study...";
+      }
+    } else if (question.category === "Geography" || question.question.toLowerCase().includes("capital") || question.question.toLowerCase().includes("country")) {
+      // Geography hints
+      if (correctAnswer.toLowerCase().includes("paris")) {
+        hint = "🗼 The City of Light, famous for art and romance...";
+      } else if (correctAnswer.toLowerCase().includes("brazil")) {
+        hint = "⚽ This South American country speaks Portuguese...";
+      } else if (correctAnswer.toLowerCase().includes("pacific")) {
+        hint = "🌊 The largest body of water on Earth...";
+      } else {
+        hint = "🌍 Consider the location mentioned in the question...";
+      }
+    } else if (question.category === "History" || question.question.toLowerCase().includes("year")) {
+            if (correctAnswer.toLowerCase().includes("1912")) {
+        hint = "🚢 This year marked a famous maritime disaster...";
+      } else {
+        hint = "📚 Think about what happened in that time period...";
+      }
+    } else if (question.category === "Entertainment" || question.question.toLowerCase().includes("wrote") || question.question.toLowerCase().includes("painted")) {
+      // Literature/Art hints
+      if (correctAnswer.toLowerCase().includes("shakespeare")) {
+        hint = "📜 The Bard of Avon...";
+      } else if (correctAnswer.toLowerCase().includes("da vinci")) {
+        hint = "🎨 Renaissance master, inventor, artist...";
+      } else {
+        hint = "🎭 Think about famous creators...";
+      }
+    } else if (question.question.toLowerCase().includes("einstein")) {
+      // Physics hints
+      hint = "⚛️ Think about E=mc²...";
+    } else if (question.question.toLowerCase().includes("mountain")) {
+      hint = "🏔️ The tallest peak on our planet...";
+    } else if (question.question.toLowerCase().includes("animal")) {
+      if (correctAnswer.toLowerCase().includes("cheetah")) {
+        hint = "🐆 The fastest runner in the animal kingdom...";
+      } else {
+        hint = "🦁 Think about animal characteristics...";
+      }
+    } else if (question.question.toLowerCase().includes("language") || question.question.toLowerCase().includes("css")) {
+      hint = "💻 Used for styling web pages, not programming logic...";
+    } else {
+      if (correctAnswer.length <= 3) {
+        hint = "📝 The answer is quite short...";
+      } else if (correctAnswer.length >= 10) {
+        hint = "📖 The answer is longer, think about famous names...";
+      } else {
+        hint = "💡 Consider what you learned in school about this topic...";
+      }
+    }
+
+    setCurrentHint(hint);
+    setHintUsed(true);
+    setRemainingHints((r) => r - 1);
+  };
+
   const goToNext = () => {
+    playSound('click');
     if (currentQuestion + 1 < questions.length) {
-      setCurrentQuestion((i) => i + 1);
-      setSelectedAnswer(null);
-      setShowFeedback(false);
-      setVisibleOptions([]);
+      // Animate transition
+      setQuestionTransition(true);
+      
+      setTimeout(() => {
+        setCurrentQuestion((i) => i + 1);
+        setSelectedAnswer(null);
+        setShowFeedback(false);
+        setVisibleOptions([]);
+        setCurrentHint("");
+        setHintUsed(false);
+        setQuestionTransition(false);
+      }, 300);
     } else {
       setIsFinished(true);
+      playSound('complete');
     }
   };
 
   const restartQuiz = () => {
+    playSound('click');
     resetQuiz();
     // keep the same questions set; if you want a fresh set, call startNewQuiz()
   };
@@ -202,32 +435,76 @@ function App() {
 
   // Start screen (from SimonBranch) before showing the selector
   if (!quizStarted) {
-    return <StartScreen onStart={() => setQuizStarted(true)} />;
+    return (
+      <div className={`min-h-screen ${themeClasses.bg}`}>
+        <StartScreen 
+          onStart={() => {
+            setQuizStarted(true);
+            playSound('click');
+          }} 
+        />
+        <ThemeToggle theme={theme} setTheme={setTheme} />
+        <SoundControls 
+          soundEnabled={soundEnabled} 
+          musicEnabled={musicEnabled}
+          setSoundEnabled={setSoundEnabled}
+          setMusicEnabled={setMusicEnabled}
+          theme={theme}
+        />
+      </div>
+    );
   }
 
   // Quiz configuration screen
   if (showQuizSelector) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
+      <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} flex flex-col items-center justify-center p-4`}>
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-purple-600 mb-2">React Quiz</h1>
-          <p className="text-gray-400 mb-4">Choose your quiz settings</p>
+          <h1 className={`text-4xl font-bold ${themeClasses.accent} mb-2`}>React Quiz</h1>
+          <p className={`${themeClasses.accent} mb-4`}>Choose your quiz settings</p>
           <LogoutButton />
         </div>
 
         <QuizSelector onStart={handleQuizStart} loading={loading} error={error} />
+        
+        <ThemeToggle theme={theme} setTheme={setTheme} />
+        <SoundControls 
+          soundEnabled={soundEnabled} 
+          musicEnabled={musicEnabled}
+          setSoundEnabled={setSoundEnabled}
+          setMusicEnabled={setMusicEnabled}
+          theme={theme}
+        />
       </div>
     );
   }
 
   // ----- MAIN QUIZ UI -----
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4">
+    <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} flex flex-col items-center justify-center p-4 relative`}>
       {showConfetti && <Confetti />}
+      
+      {/* Celebration Animation */}
+      {showCelebration && (
+        <CelebrationAnimation 
+          type={celebrationType} 
+          onComplete={() => setShowCelebration(false)}
+        />
+      )}
+
+      {/* Theme and Sound Controls */}
+      <ThemeToggle theme={theme} setTheme={setTheme} />
+      <SoundControls 
+        soundEnabled={soundEnabled} 
+        musicEnabled={musicEnabled}
+        setSoundEnabled={setSoundEnabled}
+        setMusicEnabled={setMusicEnabled}
+        theme={theme}
+      />
 
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-purple-600 mb-2">React Quiz</h1>
-        <p className="text-gray-400 mb-2">
+        <h1 className={`text-4xl font-bold ${themeClasses.accent} mb-2`}>React Quiz</h1>
+        <p className={`${themeClasses.text} mb-2`}>
           {quizConfig.source === "opentdb"
             ? "OpenTDB"
             : quizConfig.source === "local"
@@ -248,7 +525,7 @@ function App() {
 
       {/* Progress Bar */}
       <div className="w-full max-w-xl mb-6">
-        <div className="bg-gray-700 h-3 rounded-full overflow-hidden">
+        <div className={`${themeClasses.panelBg} h-3 rounded-full overflow-hidden`}>
           <div
             className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 duration-500 ease-out transition-all"
             style={{ width: `${calculateProgress()}%` }}
@@ -277,11 +554,12 @@ function App() {
               onTimeUp={() => {
                 setShowFeedback(true);
                 setStreak(0);
+                playSound('incorrect');
               }}
             />
           )}
 
-          <div className="relative w-full max-w-4xl flex justify-center">
+          <div className={`relative w-full max-w-4xl flex justify-center transition-all duration-300 ${questionTransition ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
             <QuestionCard
               showFeedback={showFeedback}
               onAnswer={handleAnswer}
@@ -294,13 +572,14 @@ function App() {
                   ? visibleOptions
                   : questions[currentQuestion].options
               }
+              theme={theme}
             />
           </div>
 
           <div className="mt-6 min-h-[60px]">
             {showFeedback && (
               <button
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 py-3 px-6 rounded-lg font-medium shadow-lg cursor-pointer"
+                className={`${themeClasses.button} py-3 px-6 rounded-lg font-medium shadow-lg cursor-pointer transition-transform hover:scale-105`}
                 onClick={goToNext}
               >
                 {currentQuestion + 1 < questions.length
@@ -336,13 +615,26 @@ function App() {
         </div>
       )}
 
+      {/* Hint Display */}
+      {currentHint && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg shadow-lg max-w-md animate-pulse">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">💡</span>
+            <p className="font-medium">{currentHint}</p>
+          </div>
+        </div>
+      )}
+
       {/* Buttons fixed bottom-right */}
       <div className="fixed bottom-4 right-4 flex flex-col gap-4">
         <button
-          className="bg-blue-500 hover:bg-blue-600 py-2 px-4 rounded-lg shadow-md font-medium"
-          onClick={() => alert("This is a hint! 💡")}
+          className={`bg-blue-500 hover:bg-blue-600 py-2 px-4 rounded-lg shadow-md font-medium ${
+            remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={useHint}
+          disabled={remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback}
         >
-          💡 Hint
+          💡 Hint ({remainingHints})
         </button>
         <button
           className={`bg-green-500 hover:bg-green-600 py-2 px-4 rounded-lg shadow-md font-medium ${
