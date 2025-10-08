@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import QuizCreationTool from './QuizCreationTool';
 
 const QuizSelector = ({ onStart, loading, error }) => {
   const [config, setConfig] = useState({
@@ -8,9 +9,33 @@ const QuizSelector = ({ onStart, loading, error }) => {
     category: null
   });
 
+  const [customQuizzes, setCustomQuizzes] = useState([]);
+  const [showCreationTool, setShowCreationTool] = useState(false);
+
+  useEffect(() => {
+    // Load custom quizzes
+    const savedQuizzes = JSON.parse(localStorage.getItem('custom-quizzes') || '[]');
+    setCustomQuizzes(savedQuizzes);
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onStart(config);
+  };
+
+  const handleCustomQuizStart = (quiz) => {
+    const customConfig = {
+      source: 'custom',
+      amount: quiz.questions.length,
+      difficulty: quiz.difficulty,
+      category: quiz.category,
+      customQuiz: quiz
+    };
+    onStart(customConfig);
+  };
+
+  const handleQuizCreated = (newQuiz) => {
+    setCustomQuizzes(prev => [...prev, newQuiz]);
   };
 
   const opentdbCategories = [
@@ -40,8 +65,59 @@ const QuizSelector = ({ onStart, loading, error }) => {
   ];
 
   return (
-    <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-md">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-6">
+      {/* Custom Quizzes Section */}
+      {customQuizzes.length > 0 && (
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-white">Your Custom Quizzes</h3>
+            <button
+              onClick={() => setShowCreationTool(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg text-sm font-medium"
+            >
+              + Create New
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {customQuizzes.map((quiz) => (
+              <div key={quiz.id} className="bg-gray-700 rounded-lg p-3">
+                <h4 className="font-semibold text-white mb-1">{quiz.title}</h4>
+                <p className="text-gray-300 text-sm mb-2">{quiz.description}</p>
+                <div className="flex justify-between items-center">
+                  <div className="text-xs text-gray-400">
+                    {quiz.questions.length} questions • {quiz.difficulty}
+                  </div>
+                  <button
+                    onClick={() => handleCustomQuizStart(quiz)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm"
+                  >
+                    Play
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Create Quiz Button (when no custom quizzes) */}
+      {customQuizzes.length === 0 && (
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg text-center">
+          <h3 className="text-lg font-semibold text-white mb-2">Create Your Own Quiz</h3>
+          <p className="text-gray-300 mb-4">Design custom quizzes with your own questions</p>
+          <button
+            onClick={() => setShowCreationTool(true)}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium"
+          >
+            Start Creating
+          </button>
+        </div>
+      )}
+
+      {/* Standard Quiz Options */}
+      <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-md">
+        <h3 className="text-lg font-semibold text-white mb-4">Standard Quizzes</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Question Source
@@ -123,6 +199,16 @@ const QuizSelector = ({ onStart, loading, error }) => {
         </button>
       </form>
     </div>
+
+    {/* Quiz Creation Tool Modal */}
+    {showCreationTool && (
+      <QuizCreationTool
+        onSaveQuiz={handleQuizCreated}
+        onClose={() => setShowCreationTool(false)}
+        theme="dark" // You could pass this as a prop
+      />
+    )}
+  </div>
   );
 };
 
