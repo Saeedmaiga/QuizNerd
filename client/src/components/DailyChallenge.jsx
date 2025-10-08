@@ -142,10 +142,10 @@ const DailyChallenge = ({ onStartChallenge, theme }) => {
   }
 
   return (
-    <div className={`${getDifficultyBg(challenge.difficulty)} rounded-lg p-4 border-2 shadow-lg`}>
-      <div className="flex items-start justify-between mb-3">
+    <div className={`${getDifficultyBg(challenge.difficulty)} rounded-2xl p-6 border-2 shadow-lg`}>
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{challenge.icon}</span>
+          <span className="text-2xl">{challenge.icon}</span>
           <div>
             <h3 className="text-lg font-bold text-white">Daily Challenge</h3>
             <p className={`text-sm font-medium ${getDifficultyColor(challenge.difficulty)}`}>
@@ -154,7 +154,7 @@ const DailyChallenge = ({ onStartChallenge, theme }) => {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-gray-400">Next challenge in:</div>
+          <div className="text-xs text-gray-400">Next in:</div>
           <div className="text-sm font-mono text-gray-300">{formatTime(timeLeft)}</div>
         </div>
       </div>
@@ -165,27 +165,27 @@ const DailyChallenge = ({ onStartChallenge, theme }) => {
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-4 text-sm">
+        <div className="flex gap-3 text-xs">
           <div className="flex items-center gap-1">
             <span className="text-yellow-400">⭐</span>
             <span className="text-gray-300">+{challenge.reward.xp} XP</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-yellow-500">🪙</span>
-            <span className="text-gray-300">+{challenge.reward.coins} coins</span>
+            <span className="text-gray-300">+{challenge.reward.coins}</span>
           </div>
         </div>
         
         {challenge.attempts > 0 && (
           <div className="text-xs text-gray-400">
-            Attempts: {challenge.attempts}
+            {challenge.attempts} attempts
           </div>
         )}
       </div>
 
       <div className="flex gap-2">
         {isCompleted ? (
-          <div className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg text-center font-semibold">
+          <div className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg text-center font-semibold text-sm">
             ✓ COMPLETED
           </div>
         ) : (
@@ -195,7 +195,7 @@ const DailyChallenge = ({ onStartChallenge, theme }) => {
               theme === 'dark' 
                 ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700' 
                 : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'
-            } text-white py-2 px-4 rounded-lg font-semibold transition-all hover:scale-105`}
+            } text-white py-2 px-3 rounded-lg font-semibold transition-all hover:scale-105 text-sm`}
           >
             Start Challenge
           </button>
@@ -203,7 +203,7 @@ const DailyChallenge = ({ onStartChallenge, theme }) => {
         
         <button
           onClick={() => {/* Show challenge details modal */}}
-          className="bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-3 rounded-lg transition-colors"
+          className="bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-2 rounded-lg transition-colors text-sm"
           title="View details"
         >
           ℹ️

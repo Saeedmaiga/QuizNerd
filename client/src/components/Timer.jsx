@@ -20,11 +20,14 @@ function Timer({ duration = 10, onTimeUp }) {
     timeLeft <= 3 ? "text-red-500 animate-pulse" : "text-green-400";
 
   return (
-    <div className="fixed top-4 left-4 z-50">
+    <div className="fixed top-3 left-3 z-50">
       <div
-        className={`text-3xl font-bold px-6 py-3 rounded-xl shadow-lg bg-gray-800 border-2 ${timerColor}`}
+        className={`text-xl font-bold px-4 py-2 rounded-lg shadow-lg bg-gray-800/80 backdrop-blur-xl border ${timerColor} border-gray-700/50`}
       >
-        ⏳ {timeLeft}s
+        <span className="flex items-center gap-1">
+          <span className="text-lg animate-pulse">⏳</span>
+          <span>{timeLeft}s</span>
+        </span>
       </div>
     </div>
   );
