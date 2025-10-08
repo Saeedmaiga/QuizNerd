@@ -686,7 +686,7 @@ function App() {
     return (
       <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} overflow-y-auto`}>
         {/* Header */}
-        <div className="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-xl border-b border-gray-700/50">
+        <div className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-700/50">
           <div className="flex justify-between items-center p-4">
             <div className="text-center flex-1">
               <h1 className={`text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent`}>
@@ -695,14 +695,15 @@ function App() {
               <p className={`text-gray-400 text-sm`}>Choose your quiz settings</p>
             </div>
             <div className="flex items-center gap-3">
-              <LogoutButton />
-              <ThemeToggle theme={theme} setTheme={setTheme} />
+              <LogoutButton theme={theme} />
+              <ThemeToggle theme={theme} setTheme={setTheme} isInHeader={true} />
               <SoundControls 
                 soundEnabled={soundEnabled} 
                 musicEnabled={musicEnabled}
                 setSoundEnabled={setSoundEnabled}
                 setMusicEnabled={setMusicEnabled}
                 theme={theme}
+                isInHeader={true}
               />
             </div>
           </div>
@@ -823,7 +824,7 @@ function App() {
             >
               🏆 Achievements
             </button>
-            <LogoutButton />
+            <LogoutButton theme={theme} />
           </div>
         </div>
       </div>
@@ -964,6 +965,16 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Fixed Controls */}
+      <ThemeToggle theme={theme} setTheme={setTheme} />
+      <SoundControls 
+        soundEnabled={soundEnabled} 
+        musicEnabled={musicEnabled}
+        setSoundEnabled={setSoundEnabled}
+        setMusicEnabled={setMusicEnabled}
+        theme={theme}
+      />
 
       {/* Buttons fixed bottom-right */}
       <div className="fixed bottom-3 right-3 flex flex-col gap-2 z-40">

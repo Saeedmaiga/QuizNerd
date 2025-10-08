@@ -5,7 +5,8 @@ const SoundControls = ({
   musicEnabled, 
   setSoundEnabled, 
   setMusicEnabled, 
-  theme 
+  theme,
+  isInHeader = false
 }) => {
   const toggleSound = () => {
     setSoundEnabled(!soundEnabled);
@@ -16,7 +17,7 @@ const SoundControls = ({
   };
 
   return (
-    <div className="flex gap-2 fixed top-4 right-20 z-50">
+    <div className={`flex gap-2 ${isInHeader ? 'relative z-10' : 'fixed top-4 right-20 z-30'}`}>
       {/* Sound Effects Toggle */}
       <button
         onClick={toggleSound}
