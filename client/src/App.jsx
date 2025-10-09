@@ -13,6 +13,14 @@ import QuizSelector from "./components/QuizSelector";    // from main
 import LoadingSpinner from "./components/LoadingSpinner";// from main
 import ThemeToggle from "./components/ThemeToggle";       // NEW
 import SoundControls from "./components/SoundControls";   // NEW
+import StatsModal from "./components/StatsModal";         // NEW
+import ReviewModal from "./components/ReviewModal";       // NEW
+import AchievementSystem from "./components/AchievementSystem"; // NEW
+import AchievementModal from "./components/AchievementModal"; // NEW
+import DailyChallenge from "./components/DailyChallenge"; // NEW
+import PowerUpsSystem from "./components/PowerUpsSystem"; // NEW
+import XPLevelSystem from "./components/XPLevelSystem"; // NEW
+import LearningMode from "./components/LearningMode"; // NEW
 import apiService from "./services/api";                 // from main
 
 // local questions support (SimonBranch)
@@ -52,6 +60,68 @@ function App() {
 
   // Animation state
   const [questionTransition, setQuestionTransition] = useState(false);
+
+  // Answers history for review
+  const [userAnswers, setUserAnswers] = useState([]);
+
+  // Modals
+  const [showStats, setShowStats] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showLearningMode, setShowLearningMode] = useState(false);
+  const [learningModeData, setLearningModeData] = useState(null);
+
+  // XP and Leveling
+  const [userLevel, setUserLevel] = useState(1);
+  const [userXP, setUserXP] = useState(0);
+
+  // Power-ups
+  const [doublePointsActive, setDoublePointsActive] = useState(false);
+  const [extraTimeUsed, setExtraTimeUsed] = useState(false);
+  const [currentTimerDuration, setCurrentTimerDuration] = useState(10);
+
+  // Daily Challenge
+  const [dailyChallengeConfig, setDailyChallengeConfig] = useState(null);
+  const [isDailyChallenge, setIsDailyChallenge] = useState(false);
+
+  // Keyboard shortcuts: 1-4 select option, H=hint, F=50/50, N=next
+  useEffect(() => {
+    const onKey = (e) => {
+      if (isFinished) return;
+      if (!questions[currentQuestion]) return;
+
+      const opts = visibleOptions.length ? visibleOptions : questions[currentQuestion].options;
+
+      // Numbers 1-4
+      if (!showFeedback) {
+        if (e.key >= '1' && e.key <= '4') {
+          const idx = Number(e.key) - 1;
+          if (opts[idx]) {
+            e.preventDefault();
+            handleAnswer(opts[idx]);
+          }
+        }
+      }
+
+      // Hint
+      if (e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        useHint();
+      }
+      // 50/50
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        use5050();
+      }
+      // Next
+      if (e.key.toLowerCase() === 'n' && showFeedback) {
+        e.preventDefault();
+        goToNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [questions, currentQuestion, visibleOptions, showFeedback, isFinished]);
 
   // Initialize theme from localStorage
   useEffect(() => {
@@ -163,6 +233,17 @@ function App() {
     setHintUsed(false);
     setShowCelebration(false);
     setCelebrationType("");
+    setUserAnswers([]);
+    setShowStats(false);
+    setShowReview(false);
+    setShowAchievements(false);
+    setShowLearningMode(false);
+    setLearningModeData(null);
+    setDoublePointsActive(false);
+    setExtraTimeUsed(false);
+    setCurrentTimerDuration(10);
+    setIsDailyChallenge(false);
+    setDailyChallengeConfig(null);
   };
 
   const startNewQuiz = () => {
@@ -191,6 +272,24 @@ function App() {
           category: q.category ?? "Local",
           difficulty: q.difficulty ?? "mixed",
           source: "local",
+        }));
+
+        setQuestions(transformed);
+        setShowQuizSelector(false);
+        resetQuiz();
+        return;
+      }
+
+      // Support custom quizzes
+      if (config.source === "custom" && config.customQuiz) {
+        const transformed = config.customQuiz.questions.map((q) => ({
+          question: q.question,
+          options: q.options,
+          answer: q.answer,
+          category: q.category,
+          difficulty: q.difficulty,
+          source: "custom",
+          explanation: q.explanation
         }));
 
         setQuestions(transformed);
@@ -265,14 +364,34 @@ function App() {
     setSelectedAnswer(option);
     setShowFeedback(true);
 
+    // Record answer for review
+    setUserAnswers((prev) => [
+      ...prev,
+      {
+        index: currentQuestion,
+        question: questions[currentQuestion]?.question,
+        selected: option,
+        correct: questions[currentQuestion]?.answer,
+        options:
+          visibleOptions.length
+            ? visibleOptions
+            : questions[currentQuestion]?.options,
+      },
+    ]);
+
     if (option === questions[currentQuestion].answer) {
       playSound('correct');
-      setScore((s) => s + 1);
+      const pointsEarned = doublePointsActive ? 2 : 1;
+      setScore((s) => s + pointsEarned);
       const newStreak = streak + 1;
       setStreak(newStreak);
 
+      // Reset double points after use
+      if (doublePointsActive) {
+        setDoublePointsActive(false);
+      }
     
-      triggerCelebration(newStreak, score + 1, questions.length);
+      triggerCelebration(newStreak, score + pointsEarned, questions.length);
 
       // bonus 50/50 every 10 streak, bonus hint every 5 streak
       if (newStreak % 10 === 0) {
@@ -285,6 +404,11 @@ function App() {
     } else {
       playSound('incorrect');
       setStreak(0);
+      
+      // Show learning mode for wrong answers
+      setTimeout(() => {
+        handleLearningMode(questions[currentQuestion], option, questions[currentQuestion].answer);
+      }, 1000);
     }
   };
 
@@ -396,6 +520,25 @@ function App() {
     } else {
       setIsFinished(true);
       playSound('complete');
+
+      // Persist attempt stats
+      try {
+        const attemptsRaw = localStorage.getItem('quiz-stats') || '[]';
+        const attempts = JSON.parse(attemptsRaw);
+        const attempt = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          score,
+          total: questions.length,
+          percentage: Math.round((score / questions.length) * 100),
+          difficulty: quizConfig.difficulty,
+          source: quizConfig.source,
+          category: quizConfig.category,
+        };
+        localStorage.setItem('quiz-stats', JSON.stringify([attempt, ...attempts].slice(0, 100)));
+      } catch (e) {
+        console.error('Failed to save stats', e);
+      }
     }
   };
 
@@ -411,6 +554,79 @@ function App() {
     const base = (currentQuestion / questions.length) * 100;
     const perQ = selectedAnswer ? (1 / questions.length) * 100 : 0;
     return base + perQ;
+  };
+
+  // New handler functions for enhanced features
+  const handleAchievementUnlocked = (achievement) => {
+    playSound('milestone');
+    // Add XP for achievement
+    const xpReward = achievement.xp || 10;
+    // This will be handled by XPLevelSystem component
+  };
+
+  const handleLevelUp = (newLevel, levelsGained) => {
+    playSound('complete');
+    // Could add special rewards for leveling up
+  };
+
+  const handleXPChange = (xpGained, newStats) => {
+    setUserLevel(newStats.level);
+    setUserXP(newStats.xp);
+  };
+
+  const handlePowerUpUse = (powerUpId) => {
+    switch (powerUpId) {
+      case 'skip':
+        goToNext();
+        break;
+      case 'extraTime':
+        setCurrentTimerDuration(25); // Add 15 seconds
+        setExtraTimeUsed(true);
+        break;
+      case 'doublePoints':
+        setDoublePointsActive(true);
+        break;
+      case 'revealAnswer':
+        // Show correct answer
+        setShowFeedback(true);
+        setSelectedAnswer(questions[currentQuestion].answer);
+        break;
+      case 'hint':
+        useHint();
+        break;
+      case 'fiftyFifty':
+        use5050();
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleDailyChallengeStart = (challengeConfig) => {
+    setIsDailyChallenge(true);
+    setDailyChallengeConfig(challengeConfig);
+    fetchQuestions(challengeConfig);
+  };
+
+  const handleLearningMode = (questionData, userAnswer, correctAnswer) => {
+    setLearningModeData({
+      question: questionData.question,
+      userAnswer,
+      correctAnswer,
+      explanation: null // Could be enhanced with custom explanations
+    });
+    setShowLearningMode(true);
+  };
+
+  const handleLearningModeNext = () => {
+    setShowLearningMode(false);
+    setLearningModeData(null);
+    goToNext();
+  };
+
+  const handleLearningModeClose = () => {
+    setShowLearningMode(false);
+    setLearningModeData(null);
   };
 
   const percentage =
@@ -465,7 +681,14 @@ function App() {
           <LogoutButton />
         </div>
 
-        <QuizSelector onStart={handleQuizStart} loading={loading} error={error} />
+        <div className="w-full max-w-4xl space-y-6">
+          <QuizSelector onStart={handleQuizStart} loading={loading} error={error} />
+          
+          <DailyChallenge 
+            onStartChallenge={handleDailyChallengeStart}
+            theme={theme}
+          />
+        </div>
         
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <SoundControls 
@@ -502,6 +725,33 @@ function App() {
         theme={theme}
       />
 
+      {/* XP and Level System */}
+      <XPLevelSystem 
+        onLevelUp={handleLevelUp}
+        onXPChange={handleXPChange}
+        showLevelUpAnimation={true}
+      />
+
+      {/* Achievement System */}
+      <AchievementSystem 
+        score={score}
+        totalQuestions={questions.length}
+        streak={streak}
+        attempts={JSON.parse(localStorage.getItem('quiz-stats') || '[]')}
+        currentQuestion={currentQuestion}
+        isFinished={isFinished}
+        onAchievementUnlocked={handleAchievementUnlocked}
+      />
+
+      {/* Power-ups System */}
+      <PowerUpsSystem 
+        onUsePowerUp={handlePowerUpUse}
+        remainingHints={remainingHints}
+        remaining5050={remaining5050}
+        theme={theme}
+        disabled={showFeedback}
+      />
+
       <div className="text-center mb-8">
         <h1 className={`text-4xl font-bold ${themeClasses.accent} mb-2`}>React Quiz</h1>
         <p className={`${themeClasses.text} mb-2`}>
@@ -509,6 +759,8 @@ function App() {
             ? "OpenTDB"
             : quizConfig.source === "local"
             ? "Local Questions"
+            : quizConfig.source === "custom"
+            ? `Custom: ${quizConfig.customQuiz?.title || 'Custom Quiz'}`
             : "Trivia API"}{" "}
           • {quizConfig.difficulty} • {questions.length} questions
         </p>
@@ -518,6 +770,20 @@ function App() {
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
             New Quiz
+          </button>
+          <button
+            onClick={() => setShowStats(true)}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+            title="View stats"
+          >
+            View Stats
+          </button>
+          <button
+            onClick={() => setShowAchievements(true)}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+            title="View achievements"
+          >
+            Achievements
           </button>
           <LogoutButton />
         </div>
@@ -550,7 +816,7 @@ function App() {
           {/* Timer (SimonBranch) — only count down while waiting for an answer */}
           {!showFeedback && (
             <Timer
-              duration={10}
+              duration={currentTimerDuration}
               onTimeUp={() => {
                 setShowFeedback(true);
                 setStreak(0);
@@ -611,6 +877,12 @@ function App() {
             >
               New Quiz
             </button>
+            <button
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 py-3 px-6 rounded-lg font-medium shadow-lg cursor-pointer"
+              onClick={() => setShowReview(true)}
+            >
+              Review Answers
+            </button>
           </div>
         </div>
       )}
@@ -651,6 +923,28 @@ function App() {
       <div className="fixed bottom-4 left-4 bg-gradient-to-r from-yellow-400 to-red-500 text-black font-bold py-3 px-8 rounded-lg shadow-lg">
         🔥 Streak: {streak}
       </div>
+
+      {/* Modals */}
+      {showStats && (
+        <StatsModal onClose={() => setShowStats(false)} />
+      )}
+      {showReview && (
+        <ReviewModal answers={userAnswers} onClose={() => setShowReview(false)} />
+      )}
+      {showAchievements && (
+        <AchievementModal onClose={() => setShowAchievements(false)} />
+      )}
+      {showLearningMode && learningModeData && (
+        <LearningMode 
+          question={learningModeData.question}
+          userAnswer={learningModeData.userAnswer}
+          correctAnswer={learningModeData.correctAnswer}
+          explanation={learningModeData.explanation}
+          onNext={handleLearningModeNext}
+          onClose={handleLearningModeClose}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }
