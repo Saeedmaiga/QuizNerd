@@ -49,6 +49,7 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [musicEnabled, setMusicEnabled] = useState(false);
   const [backgroundMusic, setBackgroundMusic] = useState(null);
+  const [stopTimer, setStopTimer] = useState(false);
 
   // Animation state
   const [questionTransition, setQuestionTransition] = useState(false);
@@ -84,17 +85,26 @@ function App() {
   }, [musicEnabled]);
 
   // Sound effects setup
-  const playSound = useCallback((soundName) => {
-    if (!soundEnabled) return;
-    
-    const soundMap = {
-      correct: new Audio('/sounds/correct.mp3'),
-      incorrect: new Audio('/sounds/incorrect.mp3'),
-      click: new Audio('/sounds/click.mp3'),
-      hint: new Audio('/sounds/hint.mp3'),
-      milestone: new Audio('/sounds/milestone.mp3'),
-      complete: new Audio('/sounds/complete.mp3')
-    };
+  const soundMap = {
+  correct: new Audio('correct.mp3'),
+  incorrect: new Audio('wrong.mp3'),
+  click: new Audio('button-click.mp3'),
+  hint: new Audio('hint.mp3'),
+  milestone: new Audio('milestone.mp3'),
+  complete: new Audio('complete.mp3')
+};
+
+// Sound effects playback
+const playSound = useCallback((soundName) => {
+  if (!soundEnabled) return;
+
+  const audio = soundMap[soundName];
+  if (audio) {
+    audio.currentTime = 0; // restart sound from beginning
+    audio.play().catch((e) => console.log('Audio play failed:', e));
+  }
+}, [soundEnabled]);
+/*
     
     try {
       const audio = soundMap[soundName];
@@ -106,11 +116,12 @@ function App() {
       console.error('Sound error:', error);
     }
   }, [soundEnabled]);
+  */
 
   // Background music setup
   useEffect(() => {
     if (musicEnabled && !backgroundMusic) {
-      const music = new Audio('/music/background.mp3');
+      const music = new Audio('/background-music.mp3');
       music.loop = true;
       music.volume = 0.3;
       setBackgroundMusic(music);
@@ -286,6 +297,10 @@ function App() {
       playSound('incorrect');
       setStreak(0);
     }
+  };
+  const handleAnswerClick = (option) => {
+    setStopTimer(true); // stop the ticking sound immediately
+    handleAnswer(option); // call your existing answer logic
   };
 
   const use5050 = () => {
@@ -514,7 +529,10 @@ function App() {
         </p>
         <div className="flex gap-4 justify-center">
           <button
-            onClick={startNewQuiz}
+            onClick={() => {
+              playSound('click');
+              startNewQuiz();
+            }}
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
             New Quiz
@@ -550,12 +568,13 @@ function App() {
           {/* Timer (SimonBranch) — only count down while waiting for an answer */}
           {!showFeedback && (
             <Timer
-              duration={10}
+              duration={20}
               onTimeUp={() => {
-                setShowFeedback(true);
-                setStreak(0);
-                playSound('incorrect');
-              }}
+              setShowFeedback(true);
+              setStreak(0);
+              playSound('incorrect');
+            }}
+            stopSignal={stopTimer}
             />
           )}
 
@@ -631,7 +650,10 @@ function App() {
           className={`bg-blue-500 hover:bg-blue-600 py-2 px-4 rounded-lg shadow-md font-medium ${
             remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback ? "opacity-50 cursor-not-allowed" : ""
           }`}
-          onClick={useHint}
+          onClick={() => {
+            playSound('click');
+            useHint;
+          }}
           disabled={remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback}
         >
           💡 Hint ({remainingHints})
@@ -640,7 +662,10 @@ function App() {
           className={`bg-green-500 hover:bg-green-600 py-2 px-4 rounded-lg shadow-md font-medium ${
             remaining5050 <= 0 ? "opacity-50 cursor-not-allowed" : ""
           }`}
-          onClick={use5050}
+          onClick={() => {
+            playSound('click');
+            use5050();
+          }}
           disabled={remaining5050 <= 0}
         >
           🎯 50/50 ({remaining5050})
