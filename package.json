@@ -1,4 +1,7 @@
 {
+  "name": "quiznerds",
+  "version": "1.0.0",
+  "description": "QuizNerds - Smart Quiz Platform with Advanced Features",
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0"
   }

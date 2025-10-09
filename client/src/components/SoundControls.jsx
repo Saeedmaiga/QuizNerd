@@ -5,7 +5,8 @@ const SoundControls = ({
   musicEnabled, 
   setSoundEnabled, 
   setMusicEnabled, 
-  theme 
+  theme,
+  isInHeader = false
 }) => {
   const toggleSound = () => {
     setSoundEnabled(!soundEnabled);
@@ -16,20 +17,20 @@ const SoundControls = ({
   };
 
   return (
-    <div className="flex gap-2 fixed top-4 right-16 z-50">
+    <div className={`flex gap-2 ${isInHeader ? 'relative z-10' : 'fixed top-4 right-20 z-30'}`}>
       {/* Sound Effects Toggle */}
       <button
         onClick={toggleSound}
         className={`
           ${theme === 'dark' 
-            ? 'bg-gray-700 hover:bg-gray-600 text-blue-400' 
-            : 'bg-gray-200 hover:bg-gray-300 text-blue-600'
+            ? 'bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-blue-400' 
+            : 'bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-100 hover:to-gray-200 text-blue-600'
           } 
-          p-2 rounded-lg shadow-md transition-all duration-200 hover:scale-105
+          p-3 rounded-xl shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl border border-white/20 backdrop-blur-sm
         `}
         title={`${soundEnabled ? 'Disable' : 'Enable'} sound effects`}
       >
-        <span className="text-xl">
+        <span className="text-xl animate-pulse">
           {soundEnabled ? '🔊' : '🔇'}
         </span>
       </button>
@@ -39,18 +40,18 @@ const SoundControls = ({
         onClick={toggleMusic}
         className={`
           ${theme === 'dark' 
-            ? 'bg-gray-700 hover:bg-gray-600 text-purple-400' 
-            : 'bg-gray-200 hover:bg-gray-300 text-purple-600'
+            ? 'bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-purple-400' 
+            : 'bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-100 hover:to-gray-200 text-purple-600'
           } 
           ${musicEnabled 
-            ? 'ring-2 ring-purple-400' 
+            ? 'ring-2 ring-purple-400 shadow-purple-400/25' 
             : ''
           }
-          p-2 rounded-lg shadow-md transition-all duration-200 hover:scale-105
+          p-3 rounded-xl shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl border border-white/20 backdrop-blur-sm
         `}
         title={`${musicEnabled ? 'Disable' : 'Enable'} background music`}
       >
-        <span className="text-xl">
+        <span className="text-xl animate-pulse">
           {musicEnabled ? '🎵' : '🎶'}
         </span>
       </button>
