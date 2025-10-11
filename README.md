@@ -1,43 +1,43 @@
-# QuizNerds 🧠
+# QuizNerds 
 
 A modern, feature-rich quiz application built with React and Node.js. QuizNerds offers an engaging quiz experience with advanced features like achievements, daily challenges, power-ups, and custom quiz creation.
 
-## ✨ Features
+##  Features
 
-### 🎯 Core Quiz Features
+###  Core Quiz Features
 - **Multiple Question Sources**: OpenTDB, Trivia API, and custom quizzes
 - **Difficulty Levels**: Easy, Medium, Hard
 - **Categories**: Science, History, Geography, Entertainment, and more
 - **Timer**: Countdown timer for each question
 - **Progress Tracking**: Visual progress bar and completion percentage
 
-### 🏆 Gamification
+###  Gamification
 - **Achievement System**: 12+ achievements with different rarities
 - **XP & Leveling**: Progressive leveling system with titles
 - **Daily Challenges**: Special themed quizzes with rewards
 - **Streak Tracking**: Maintain streaks for bonus rewards
 - **Power-ups**: Skip, Extra Time, Double Points, Reveal Answer
 
-### 🎨 Modern UI/UX
+###  Modern UI/UX
 - **Glassmorphism Design**: Modern glass-like effects
 - **Dark/Light Themes**: Toggle between themes
 - **Responsive Layout**: Works on all devices
 - **Smooth Animations**: Engaging micro-interactions
 - **Sound Effects**: Audio feedback for actions
 
-### 📚 Learning Features
+###  Learning Features
 - **Learning Mode**: Explanations for wrong answers
 - **Answer Review**: Detailed review of all answers
 - **Custom Quiz Creation**: Create and share your own quizzes
 - **Statistics Tracking**: Performance analytics and history
 
-### 🔧 Technical Features
+###  Technical Features
 - **Authentication**: Secure login with Auth0
 - **Persistent Storage**: Local storage for progress and settings
 - **Real-time Updates**: Live score and progress tracking
 - **Keyboard Shortcuts**: Quick navigation with hotkeys
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Node.js (v16 or higher)
@@ -83,7 +83,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
    npm run dev
    ```
 
-## 🎮 Usage
+##  Usage
 
 1. **Login**: Use Auth0 authentication to access the platform
 2. **Choose Quiz**: Select from standard quizzes or daily challenges
@@ -92,7 +92,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 5. **Create**: Build custom quizzes and share with others
 6. **Track**: Monitor your progress and achievements
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### Frontend
 - **React 19**: Modern React with latest features
@@ -111,14 +111,14 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 - **Local Storage**: Client-side data persistence
 - **Responsive Design**: Mobile-first approach
 
-## 📱 Keyboard Shortcuts
+##  Keyboard Shortcuts
 
 - **1-4**: Select answer options
 - **H**: Use hint
 - **F**: Use 50/50 power-up
 - **N**: Next question (when feedback is shown)
 
-## 🎯 Achievements
+##  Achievements
 
 - **Getting Started**: Complete your first quiz
 - **Perfectionist**: Get 100% on any quiz
@@ -127,7 +127,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 - **Speed Demon**: Complete a quiz in under 2 minutes
 - And many more!
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -135,11 +135,11 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - OpenTDB for question database
 - The Trivia API for additional questions
@@ -148,4 +148,4 @@ This project is licensed under the MIT License.
 
 ---
 
-**QuizNerds** - Where knowledge meets fun! 🧠✨
+**QuizNerd** - Made by Saaed Maiga, Evan Boyle and Simon Engman.
