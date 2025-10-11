@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ThemeToggle = ({ theme, setTheme }) => {
+const ThemeToggle = ({ theme, setTheme, isInHeader = false }) => {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -19,15 +19,15 @@ const playClickSound = () => {
       
       className={`
         ${theme === 'dark' 
-          ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
-          : 'bg-gray-200 hover:bg-gray-300 text-yellow-600'
+          ? 'bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-yellow-400' 
+          : 'bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-100 hover:to-gray-200 text-yellow-600'
         } 
-        p-2 rounded-lg shadow-md transition-all duration-200 hover:scale-105
-        fixed top-4 right-4 z-50
+        p-3 rounded-xl shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl border border-white/20 backdrop-blur-sm
+        ${isInHeader ? 'relative z-10' : 'fixed top-4 right-4 z-30'}
       `}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
     >
-      <span className="text-xl">
+      <span className="text-2xl animate-pulse">
         {theme === 'dark' ? '🌞' : '🌙'}
       </span>
     </button>

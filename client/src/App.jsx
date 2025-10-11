@@ -13,6 +13,14 @@ import QuizSelector from "./components/QuizSelector";    // from main
 import LoadingSpinner from "./components/LoadingSpinner";// from main
 import ThemeToggle from "./components/ThemeToggle";       // NEW
 import SoundControls from "./components/SoundControls";   // NEW
+import StatsModal from "./components/StatsModal";         // NEW
+import ReviewModal from "./components/ReviewModal";       // NEW
+import AchievementSystem from "./components/AchievementSystem"; // NEW
+import AchievementModal from "./components/AchievementModal"; // NEW
+import DailyChallenge from "./components/DailyChallenge"; // NEW
+import PowerUpsSystem from "./components/PowerUpsSystem"; // NEW
+import XPLevelSystem from "./components/XPLevelSystem"; // NEW
+import LearningMode from "./components/LearningMode"; // NEW
 import apiService from "./services/api";                 // from main
 
 // local questions support (SimonBranch)
@@ -53,6 +61,68 @@ function App() {
 
   // Animation state
   const [questionTransition, setQuestionTransition] = useState(false);
+
+  // Answers history for review
+  const [userAnswers, setUserAnswers] = useState([]);
+
+  // Modals
+  const [showStats, setShowStats] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showLearningMode, setShowLearningMode] = useState(false);
+  const [learningModeData, setLearningModeData] = useState(null);
+
+  // XP and Leveling
+  const [userLevel, setUserLevel] = useState(1);
+  const [userXP, setUserXP] = useState(0);
+
+  // Power-ups
+  const [doublePointsActive, setDoublePointsActive] = useState(false);
+  const [extraTimeUsed, setExtraTimeUsed] = useState(false);
+  const [currentTimerDuration, setCurrentTimerDuration] = useState(10);
+
+  // Daily Challenge
+  const [dailyChallengeConfig, setDailyChallengeConfig] = useState(null);
+  const [isDailyChallenge, setIsDailyChallenge] = useState(false);
+
+  // Keyboard shortcuts: 1-4 select option, H=hint, F=50/50, N=next
+  useEffect(() => {
+    const onKey = (e) => {
+      if (isFinished) return;
+      if (!questions[currentQuestion]) return;
+
+      const opts = visibleOptions.length ? visibleOptions : questions[currentQuestion].options;
+
+      // Numbers 1-4
+      if (!showFeedback) {
+        if (e.key >= '1' && e.key <= '4') {
+          const idx = Number(e.key) - 1;
+          if (opts[idx]) {
+            e.preventDefault();
+            handleAnswer(opts[idx]);
+          }
+        }
+      }
+
+      // Hint
+      if (e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        useHint();
+      }
+      // 50/50
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        use5050();
+      }
+      // Next
+      if (e.key.toLowerCase() === 'n' && showFeedback) {
+        e.preventDefault();
+        goToNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [questions, currentQuestion, visibleOptions, showFeedback, isFinished]);
 
   // Initialize theme from localStorage
   useEffect(() => {
@@ -135,14 +205,24 @@ const playSound = useCallback((soundName) => {
 
   const getThemeClasses = () => {
     return {
-      bg: theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50',
+      bg: theme === 'dark' 
+        ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900' 
+        : 'bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50',
       text: theme === 'dark' ? 'text-white' : 'text-gray-900',
-      panelBg: theme === 'dark' ? 'bg-gray-800' : 'bg-white',
-      border: theme === 'dark' ? 'border-gray-700' : 'border-gray-200',
+      panelBg: theme === 'dark' 
+        ? 'bg-gray-800/80 backdrop-blur-xl border border-gray-700/50' 
+        : 'bg-white/80 backdrop-blur-xl border border-gray-200/50',
+      border: theme === 'dark' ? 'border-gray-700/50' : 'border-gray-200/50',
       accent: theme === 'dark' ? 'text-purple-400' : 'text-purple-600',
       button: theme === 'dark' 
-        ? 'bg-gradient-to-r from-indigo-600 to-purple-600' 
-        : 'bg-gradient-to-r from-indigo-500 to-purple-500'
+        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500' 
+        : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-400 hover:via-purple-400 hover:to-pink-400',
+      card: theme === 'dark'
+        ? 'bg-gray-800/60 backdrop-blur-xl border border-gray-700/30 shadow-2xl'
+        : 'bg-white/60 backdrop-blur-xl border border-gray-200/30 shadow-2xl',
+      glass: theme === 'dark'
+        ? 'bg-gray-800/20 backdrop-blur-md border border-gray-700/20'
+        : 'bg-white/20 backdrop-blur-md border border-gray-200/20'
     };
   };
 
@@ -174,6 +254,17 @@ const playSound = useCallback((soundName) => {
     setHintUsed(false);
     setShowCelebration(false);
     setCelebrationType("");
+    setUserAnswers([]);
+    setShowStats(false);
+    setShowReview(false);
+    setShowAchievements(false);
+    setShowLearningMode(false);
+    setLearningModeData(null);
+    setDoublePointsActive(false);
+    setExtraTimeUsed(false);
+    setCurrentTimerDuration(10);
+    setIsDailyChallenge(false);
+    setDailyChallengeConfig(null);
   };
 
   const startNewQuiz = () => {
@@ -202,6 +293,24 @@ const playSound = useCallback((soundName) => {
           category: q.category ?? "Local",
           difficulty: q.difficulty ?? "mixed",
           source: "local",
+        }));
+
+        setQuestions(transformed);
+        setShowQuizSelector(false);
+        resetQuiz();
+        return;
+      }
+
+      // Support custom quizzes
+      if (config.source === "custom" && config.customQuiz) {
+        const transformed = config.customQuiz.questions.map((q) => ({
+          question: q.question,
+          options: q.options,
+          answer: q.answer,
+          category: q.category,
+          difficulty: q.difficulty,
+          source: "custom",
+          explanation: q.explanation
         }));
 
         setQuestions(transformed);
@@ -276,14 +385,34 @@ const playSound = useCallback((soundName) => {
     setSelectedAnswer(option);
     setShowFeedback(true);
 
+    // Record answer for review
+    setUserAnswers((prev) => [
+      ...prev,
+      {
+        index: currentQuestion,
+        question: questions[currentQuestion]?.question,
+        selected: option,
+        correct: questions[currentQuestion]?.answer,
+        options:
+          visibleOptions.length
+            ? visibleOptions
+            : questions[currentQuestion]?.options,
+      },
+    ]);
+
     if (option === questions[currentQuestion].answer) {
       playSound('correct');
-      setScore((s) => s + 1);
+      const pointsEarned = doublePointsActive ? 2 : 1;
+      setScore((s) => s + pointsEarned);
       const newStreak = streak + 1;
       setStreak(newStreak);
 
+      // Reset double points after use
+      if (doublePointsActive) {
+        setDoublePointsActive(false);
+      }
     
-      triggerCelebration(newStreak, score + 1, questions.length);
+      triggerCelebration(newStreak, score + pointsEarned, questions.length);
 
       // bonus 50/50 every 10 streak, bonus hint every 5 streak
       if (newStreak % 10 === 0) {
@@ -296,6 +425,11 @@ const playSound = useCallback((soundName) => {
     } else {
       playSound('incorrect');
       setStreak(0);
+      
+      // Show learning mode for wrong answers
+      setTimeout(() => {
+        handleLearningMode(questions[currentQuestion], option, questions[currentQuestion].answer);
+      }, 1000);
     }
   };
   const handleAnswerClick = (option) => {
@@ -411,13 +545,32 @@ const playSound = useCallback((soundName) => {
     } else {
       setIsFinished(true);
       playSound('complete');
+
+      // Persist attempt stats
+      try {
+        const attemptsRaw = localStorage.getItem('quiz-stats') || '[]';
+        const attempts = JSON.parse(attemptsRaw);
+        const attempt = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          score,
+          total: questions.length,
+          percentage: Math.round((score / questions.length) * 100),
+          difficulty: quizConfig.difficulty,
+          source: quizConfig.source,
+          category: quizConfig.category,
+        };
+        localStorage.setItem('quiz-stats', JSON.stringify([attempt, ...attempts].slice(0, 100)));
+      } catch (e) {
+        console.error('Failed to save stats', e);
+      }
     }
   };
 
   const restartQuiz = () => {
     playSound('click');
     resetQuiz();
-    // keep the same questions set; if you want a fresh set, call startNewQuiz()
+    
   };
 
   const calculateProgress = () => {
@@ -426,6 +579,79 @@ const playSound = useCallback((soundName) => {
     const base = (currentQuestion / questions.length) * 100;
     const perQ = selectedAnswer ? (1 / questions.length) * 100 : 0;
     return base + perQ;
+  };
+
+  // New handler functions for enhanced features
+  const handleAchievementUnlocked = (achievement) => {
+    playSound('milestone');
+    // Add XP for achievement
+    const xpReward = achievement.xp || 10;
+    // This will be handled by XPLevelSystem component
+  };
+
+  const handleLevelUp = (newLevel, levelsGained) => {
+    playSound('complete');
+    // Could add special rewards for leveling up
+  };
+
+  const handleXPChange = (xpGained, newStats) => {
+    setUserLevel(newStats.level);
+    setUserXP(newStats.xp);
+  };
+
+  const handlePowerUpUse = (powerUpId) => {
+    switch (powerUpId) {
+      case 'skip':
+        goToNext();
+        break;
+      case 'extraTime':
+        setCurrentTimerDuration(25); // Add 15 seconds
+        setExtraTimeUsed(true);
+        break;
+      case 'doublePoints':
+        setDoublePointsActive(true);
+        break;
+      case 'revealAnswer':
+        // Show correct answer
+        setShowFeedback(true);
+        setSelectedAnswer(questions[currentQuestion].answer);
+        break;
+      case 'hint':
+        useHint();
+        break;
+      case 'fiftyFifty':
+        use5050();
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleDailyChallengeStart = (challengeConfig) => {
+    setIsDailyChallenge(true);
+    setDailyChallengeConfig(challengeConfig);
+    fetchQuestions(challengeConfig);
+  };
+
+  const handleLearningMode = (questionData, userAnswer, correctAnswer) => {
+    setLearningModeData({
+      question: questionData.question,
+      userAnswer,
+      correctAnswer,
+      explanation: null // Could be enhanced with custom explanations
+    });
+    setShowLearningMode(true);
+  };
+
+  const handleLearningModeNext = () => {
+    setShowLearningMode(false);
+    setLearningModeData(null);
+    goToNext();
+  };
+
+  const handleLearningModeClose = () => {
+    setShowLearningMode(false);
+    setLearningModeData(null);
   };
 
   const percentage =
@@ -441,7 +667,7 @@ const playSound = useCallback((soundName) => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold text-purple-600 mb-4">React Quiz</h1>
+        <h1 className="text-4xl font-bold text-purple-600 mb-4">QuizNerds</h1>
         <p className="text-gray-400 mb-6">Please log in to access the quiz.</p>
         <LoginButton />
       </div>
@@ -473,30 +699,63 @@ const playSound = useCallback((soundName) => {
   // Quiz configuration screen
   if (showQuizSelector) {
     return (
-      <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} flex flex-col items-center justify-center p-4`}>
-        <div className="text-center mb-8">
-          <h1 className={`text-4xl font-bold ${themeClasses.accent} mb-2`}>React Quiz</h1>
-          <p className={`${themeClasses.accent} mb-4`}>Choose your quiz settings</p>
-          <LogoutButton />
+      <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} overflow-y-auto`}>
+        {/* Header */}
+        <div className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-700/50">
+          <div className="flex justify-between items-center p-4">
+            <div className="text-center flex-1">
+              <h1 className={`text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent`}>
+                QuizNerds
+              </h1>
+              <p className={`text-gray-400 text-sm`}>Choose your quiz settings</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <LogoutButton theme={theme} />
+              <ThemeToggle theme={theme} setTheme={setTheme} isInHeader={true} />
+              <SoundControls 
+                soundEnabled={soundEnabled} 
+                musicEnabled={musicEnabled}
+                setSoundEnabled={setSoundEnabled}
+                setMusicEnabled={setMusicEnabled}
+                theme={theme}
+                isInHeader={true}
+              />
+            </div>
+          </div>
         </div>
 
-        <QuizSelector onStart={handleQuizStart} loading={loading} error={error} />
-        
-        <ThemeToggle theme={theme} setTheme={setTheme} />
-        <SoundControls 
-          soundEnabled={soundEnabled} 
-          musicEnabled={musicEnabled}
-          setSoundEnabled={setSoundEnabled}
-          setMusicEnabled={setMusicEnabled}
-          theme={theme}
-        />
+        {/* Main Content */}
+        <div className="p-4 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Quiz Selector */}
+            <div className="space-y-6">
+              <QuizSelector onStart={handleQuizStart} loading={loading} error={error} />
+            </div>
+            
+            {/* Right Column - Daily Challenge */}
+            <div className="space-y-6">
+              <DailyChallenge 
+                onStartChallenge={handleDailyChallengeStart}
+                theme={theme}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   // ----- MAIN QUIZ UI -----
   return (
-    <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} flex flex-col items-center justify-center p-4 relative`}>
+    <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text} flex flex-col items-center justify-center p-4 relative overflow-hidden`}>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-purple-500/10 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-24 h-24 bg-blue-500/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-20 left-20 w-40 h-40 bg-pink-500/10 rounded-full blur-xl animate-pulse delay-2000"></div>
+        <div className="absolute bottom-40 right-10 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl animate-pulse delay-500"></div>
+      </div>
+
       {showConfetti && <Confetti />}
       
       {/* Celebration Animation */}
@@ -538,16 +797,87 @@ const playSound = useCallback((soundName) => {
             New Quiz
           </button>
           <LogoutButton />
+      {/* XP and Level System */}
+      <XPLevelSystem 
+        onLevelUp={handleLevelUp}
+        onXPChange={handleXPChange}
+        showLevelUpAnimation={true}
+      />
+
+      {/* Achievement System */}
+      <AchievementSystem 
+        score={score}
+        totalQuestions={questions.length}
+        streak={streak}
+        attempts={JSON.parse(localStorage.getItem('quiz-stats') || '[]')}
+        currentQuestion={currentQuestion}
+        isFinished={isFinished}
+        onAchievementUnlocked={handleAchievementUnlocked}
+      />
+
+      {/* Power-ups System */}
+      <PowerUpsSystem 
+        onUsePowerUp={handlePowerUpUse}
+        remainingHints={remainingHints}
+        remaining5050={remaining5050}
+        theme={theme}
+        disabled={showFeedback}
+      />
+
+      <div className="text-center mb-4 relative z-10">
+        <div className={`${themeClasses.card} rounded-2xl p-4 mb-4 transform hover:scale-105 transition-all duration-300`}>
+          <h1 className={`text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent mb-2 animate-pulse`}>
+            QuizNerds
+          </h1>
+          <p className={`${themeClasses.textSecondary} text-sm mb-3`}>
+            {quizConfig.source === "opentdb"
+              ? "OpenTDB"
+              : quizConfig.source === "local"
+              ? "Local Questions"
+              : quizConfig.source === "custom"
+              ? `Custom: ${quizConfig.customQuiz?.title || 'Custom Quiz'}`
+              : "Trivia API"}{" "}
+            • {quizConfig.difficulty} • {questions.length} questions
+          </p>
+          <div className="flex gap-2 justify-center flex-wrap">
+            <button
+              onClick={startNewQuiz}
+              className={`${themeClasses.glass} text-xs px-3 py-1 rounded-full font-medium hover:scale-105 transition-all duration-200`}
+            >
+              🆕 New
+            </button>
+            <button
+              onClick={() => setShowStats(true)}
+              className={`${themeClasses.glass} text-xs px-3 py-1 rounded-full font-medium hover:scale-105 transition-all duration-200`}
+              title="View stats"
+            >
+              📊 Stats
+            </button>
+            <button
+              onClick={() => setShowAchievements(true)}
+              className={`${themeClasses.glass} text-xs px-3 py-1 rounded-full font-medium hover:scale-105 transition-all duration-200`}
+              title="View achievements"
+            >
+              🏆 Achievements
+            </button>
+            <LogoutButton theme={theme} />
+          </div>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full max-w-xl mb-6">
-        <div className={`${themeClasses.panelBg} h-3 rounded-full overflow-hidden`}>
-          <div
-            className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 duration-500 ease-out transition-all"
-            style={{ width: `${calculateProgress()}%` }}
-          />
+      <div className="w-full max-w-xl mb-4 relative z-10">
+        <div className={`${themeClasses.card} rounded-xl p-3`}>
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-xs font-medium text-gray-400">Progress</span>
+            <span className="text-xs font-bold text-purple-400">{Math.round(calculateProgress())}%</span>
+          </div>
+          <div className={`${themeClasses.panelBg} h-3 rounded-full overflow-hidden shadow-inner`}>
+            <div
+              className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 duration-500 ease-out transition-all shadow-lg"
+              style={{ width: `${calculateProgress()}%` }}
+            />
+          </div>
         </div>
       </div>
 
@@ -569,6 +899,7 @@ const playSound = useCallback((soundName) => {
           {!showFeedback && (
             <Timer
               duration={20}
+              duration={currentTimerDuration}
               onTimeUp={() => {
               setShowFeedback(true);
               setStreak(0);
@@ -595,72 +926,114 @@ const playSound = useCallback((soundName) => {
             />
           </div>
 
-          <div className="mt-6 min-h-[60px]">
+          <div className="mt-4 min-h-[50px] relative z-10">
             {showFeedback && (
-              <button
-                className={`${themeClasses.button} py-3 px-6 rounded-lg font-medium shadow-lg cursor-pointer transition-transform hover:scale-105`}
-                onClick={goToNext}
-              >
-                {currentQuestion + 1 < questions.length
-                  ? "Continue"
-                  : "See Results"}
-              </button>
+              <div className="flex justify-center">
+                <button
+                  className={`${themeClasses.button} py-3 px-6 rounded-xl font-semibold shadow-lg cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-purple-500/25 text-base`}
+                  onClick={goToNext}
+                >
+                  <span className="flex items-center gap-2">
+                    {currentQuestion + 1 < questions.length ? (
+                      <>
+                        <span>Continue</span>
+                        <span className="text-lg">→</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>See Results</span>
+                        <span className="text-lg">🏆</span>
+                      </>
+                    )}
+                  </span>
+                </button>
+              </div>
             )}
           </div>
         </>
       ) : (
-        <div className="text-center">
-          <h2 className="text-3xl font-bold mb-4">Quiz Completed!</h2>
-          <p className="text-xl mb-6">
-            You scored{" "}
-            <span className="text-green-400 font-bold">{score}</span> out of{" "}
-            <span className="font-bold">{questions.length}</span> (
-            {Math.round(percentage)}%)
-          </p>
-          <div className="flex gap-4 justify-center">
-            <button
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 py-3 px-6 rounded-lg font-medium shadow-lg cursor-pointer"
-              onClick={restartQuiz}
-            >
-              Retry Same Quiz
-            </button>
-            <button
-              className="bg-gradient-to-r from-gray-600 to-gray-700 py-3 px-6 rounded-lg font-medium shadow-lg cursor-pointer"
-              onClick={startNewQuiz}
-            >
-              New Quiz
-            </button>
+        <div className="text-center relative z-10">
+          <div className={`${themeClasses.card} rounded-2xl p-6 max-w-xl mx-auto`}>
+            <div className="text-4xl mb-3">🎉</div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-3 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
+              Quiz Completed!
+            </h2>
+            <div className={`${themeClasses.glass} rounded-xl p-4 mb-4`}>
+              <p className="text-lg mb-1">
+                You scored{" "}
+                <span className="text-green-400 font-bold text-xl">{score}</span> out of{" "}
+                <span className="font-bold text-lg">{questions.length}</span>
+              </p>
+              <p className="text-sm text-gray-400">
+                ({Math.round(percentage)}% accuracy)
+              </p>
+            </div>
+            <div className="flex gap-2 justify-center flex-wrap">
+              <button
+                className={`${themeClasses.button} py-2 px-4 rounded-lg font-semibold shadow-lg cursor-pointer transition-all hover:scale-105 text-sm`}
+                onClick={restartQuiz}
+              >
+                🔄 Retry
+              </button>
+              <button
+                className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white py-2 px-4 rounded-lg font-semibold shadow-lg cursor-pointer transition-all hover:scale-105 text-sm"
+                onClick={startNewQuiz}
+              >
+                🆕 New Quiz
+              </button>
+              <button
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white py-2 px-4 rounded-lg font-semibold shadow-lg cursor-pointer transition-all hover:scale-105 text-sm"
+                onClick={() => setShowReview(true)}
+              >
+                📖 Review
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Hint Display */}
       {currentHint && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg shadow-lg max-w-md animate-pulse">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">💡</span>
-            <p className="font-medium">{currentHint}</p>
+        <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-3 rounded-xl shadow-lg max-w-sm border border-white/20 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-lg animate-pulse">💡</span>
+              <p className="font-semibold text-xs">{currentHint}</p>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Fixed Controls */}
+      <ThemeToggle theme={theme} setTheme={setTheme} />
+      <SoundControls 
+        soundEnabled={soundEnabled} 
+        musicEnabled={musicEnabled}
+        setSoundEnabled={setSoundEnabled}
+        setMusicEnabled={setMusicEnabled}
+        theme={theme}
+      />
+
       {/* Buttons fixed bottom-right */}
-      <div className="fixed bottom-4 right-4 flex flex-col gap-4">
+      <div className="fixed bottom-3 right-3 flex flex-col gap-2 z-40">
         <button
-          className={`bg-blue-500 hover:bg-blue-600 py-2 px-4 rounded-lg shadow-md font-medium ${
-            remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback ? "opacity-50 cursor-not-allowed" : ""
+          className={`bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 py-2 px-3 rounded-lg shadow-lg font-semibold transition-all duration-200 hover:scale-105 text-sm ${
+            remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback ? "opacity-50 cursor-not-allowed hover:scale-100" : ""
           }`}
           onClick={() => {
             playSound('click');
-            useHint;
+            useHint();
           }}
           disabled={remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback}
         >
-          💡 Hint ({remainingHints})
+          <span className="flex items-center gap-1">
+            <span className="text-sm">💡</span>
+            <span>Hint ({remainingHints})</span>
+          </span>
         </button>
         <button
-          className={`bg-green-500 hover:bg-green-600 py-2 px-4 rounded-lg shadow-md font-medium ${
-            remaining5050 <= 0 ? "opacity-50 cursor-not-allowed" : ""
+          className={`bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 py-2 px-3 rounded-lg shadow-lg font-semibold transition-all duration-200 hover:scale-105 text-sm ${
+            remaining5050 <= 0 ? "opacity-50 cursor-not-allowed hover:scale-100" : ""
           }`}
           onClick={() => {
             playSound('click');
@@ -668,14 +1041,44 @@ const playSound = useCallback((soundName) => {
           }}
           disabled={remaining5050 <= 0}
         >
-          🎯 50/50 ({remaining5050})
+          <span className="flex items-center gap-1">
+            <span className="text-sm">🎯</span>
+            <span>50/50 ({remaining5050})</span>
+          </span>
         </button>
       </div>
 
       {/* Streak bar fixed bottom-left */}
-      <div className="fixed bottom-4 left-4 bg-gradient-to-r from-yellow-400 to-red-500 text-black font-bold py-3 px-8 rounded-lg shadow-lg">
-        🔥 Streak: {streak}
+      <div className="fixed bottom-3 left-3 z-40">
+        <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500 text-black font-bold py-2 px-4 rounded-lg shadow-lg border border-yellow-300/30 backdrop-blur-sm">
+          <span className="flex items-center gap-1">
+            <span className="text-sm animate-pulse">🔥</span>
+            <span className="text-sm">{streak}</span>
+          </span>
+        </div>
       </div>
+
+      {/* Modals */}
+      {showStats && (
+        <StatsModal onClose={() => setShowStats(false)} />
+      )}
+      {showReview && (
+        <ReviewModal answers={userAnswers} onClose={() => setShowReview(false)} />
+      )}
+      {showAchievements && (
+        <AchievementModal onClose={() => setShowAchievements(false)} />
+      )}
+      {showLearningMode && learningModeData && (
+        <LearningMode 
+          question={learningModeData.question}
+          userAnswer={learningModeData.userAnswer}
+          correctAnswer={learningModeData.correctAnswer}
+          explanation={learningModeData.explanation}
+          onNext={handleLearningModeNext}
+          onClose={handleLearningModeClose}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }
