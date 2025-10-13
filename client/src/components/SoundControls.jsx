@@ -16,11 +16,18 @@ const SoundControls = ({
     setMusicEnabled(!musicEnabled);
   };
 
+  const playClickSound = () => {
+    const clickSound = new Audio("/button-click.mp3");
+    clickSound.play();
+  }
   return (
     <div className={`flex gap-2 ${isInHeader ? 'relative z-10' : 'fixed top-4 right-20 z-30'}`}>
       {/* Sound Effects Toggle */}
       <button
-        onClick={toggleSound}
+        onClick={() => {
+          toggleSound();
+          playClickSound();
+        }}
         className={`
           ${theme === 'dark' 
             ? 'bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-blue-400' 

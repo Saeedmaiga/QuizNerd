@@ -57,6 +57,7 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [musicEnabled, setMusicEnabled] = useState(false);
   const [backgroundMusic, setBackgroundMusic] = useState(null);
+  const [stopTimer, setStopTimer] = useState(false);
 
   // Animation state
   const [questionTransition, setQuestionTransition] = useState(false);
@@ -154,17 +155,26 @@ function App() {
   }, [musicEnabled]);
 
   // Sound effects setup
-  const playSound = useCallback((soundName) => {
-    if (!soundEnabled) return;
-    
-    const soundMap = {
-      correct: new Audio('/sounds/correct.mp3'),
-      incorrect: new Audio('/sounds/incorrect.mp3'),
-      click: new Audio('/sounds/click.mp3'),
-      hint: new Audio('/sounds/hint.mp3'),
-      milestone: new Audio('/sounds/milestone.mp3'),
-      complete: new Audio('/sounds/complete.mp3')
-    };
+  const soundMap = {
+  correct: new Audio('correct.mp3'),
+  incorrect: new Audio('wrong.mp3'),
+  click: new Audio('button-click.mp3'),
+  hint: new Audio('hint.mp3'),
+  milestone: new Audio('milestone.mp3'),
+  complete: new Audio('complete.mp3')
+};
+
+// Sound effects playback
+const playSound = useCallback((soundName) => {
+  if (!soundEnabled) return;
+
+  const audio = soundMap[soundName];
+  if (audio) {
+    audio.currentTime = 0; // restart sound from beginning
+    audio.play().catch((e) => console.log('Audio play failed:', e));
+  }
+}, [soundEnabled]);
+/*
     
     try {
       const audio = soundMap[soundName];
@@ -176,11 +186,12 @@ function App() {
       console.error('Sound error:', error);
     }
   }, [soundEnabled]);
+  */
 
   // Background music setup
   useEffect(() => {
     if (musicEnabled && !backgroundMusic) {
-      const music = new Audio('/music/background.mp3');
+      const music = new Audio('/background-music.mp3');
       music.loop = true;
       music.volume = 0.3;
       setBackgroundMusic(music);
@@ -420,6 +431,10 @@ function App() {
         handleLearningMode(questions[currentQuestion], option, questions[currentQuestion].answer);
       }, 1000);
     }
+  };
+  const handleAnswerClick = (option) => {
+    setStopTimer(true); // stop the ticking sound immediately
+    handleAnswer(option); // call your existing answer logic
   };
 
   const use5050 = () => {
@@ -761,6 +776,27 @@ function App() {
         theme={theme}
       />
 
+      <div className="text-center mb-8">
+        <h1 className={`text-4xl font-bold ${themeClasses.accent} mb-2`}>React Quiz</h1>
+        <p className={`${themeClasses.text} mb-2`}>
+          {quizConfig.source === "opentdb"
+            ? "OpenTDB"
+            : quizConfig.source === "local"
+            ? "Local Questions"
+            : "Trivia API"}{" "}
+          • {quizConfig.difficulty} • {questions.length} questions
+        </p>
+        <div className="flex gap-4 justify-center">
+          <button
+            onClick={() => {
+              playSound('click');
+              startNewQuiz();
+            }}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            New Quiz
+          </button>
+          <LogoutButton />
       {/* XP and Level System */}
       <XPLevelSystem 
         onLevelUp={handleLevelUp}
@@ -862,12 +898,14 @@ function App() {
           {/* Timer (SimonBranch) — only count down while waiting for an answer */}
           {!showFeedback && (
             <Timer
+              duration={20}
               duration={currentTimerDuration}
               onTimeUp={() => {
-                setShowFeedback(true);
-                setStreak(0);
-                playSound('incorrect');
-              }}
+              setShowFeedback(true);
+              setStreak(0);
+              playSound('incorrect');
+            }}
+            stopSignal={stopTimer}
             />
           )}
 
@@ -982,7 +1020,10 @@ function App() {
           className={`bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 py-2 px-3 rounded-lg shadow-lg font-semibold transition-all duration-200 hover:scale-105 text-sm ${
             remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback ? "opacity-50 cursor-not-allowed hover:scale-100" : ""
           }`}
-          onClick={useHint}
+          onClick={() => {
+            playSound('click');
+            useHint();
+          }}
           disabled={remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback}
         >
           <span className="flex items-center gap-1">
@@ -994,7 +1035,10 @@ function App() {
           className={`bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 py-2 px-3 rounded-lg shadow-lg font-semibold transition-all duration-200 hover:scale-105 text-sm ${
             remaining5050 <= 0 ? "opacity-50 cursor-not-allowed hover:scale-100" : ""
           }`}
-          onClick={use5050}
+          onClick={() => {
+            playSound('click');
+            use5050();
+          }}
           disabled={remaining5050 <= 0}
         >
           <span className="flex items-center gap-1">

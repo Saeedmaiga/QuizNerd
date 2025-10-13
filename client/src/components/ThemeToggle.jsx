@@ -5,9 +5,18 @@ const ThemeToggle = ({ theme, setTheme, isInHeader = false }) => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+const playClickSound = () => {
+    const clickSound = new Audio("/button-click.mp3");
+    clickSound.play();
+  }
+
   return (
     <button
-      onClick={toggleTheme}
+      onClick={() => {
+        toggleTheme();
+        playClickSound();
+      }}
+      
       className={`
         ${theme === 'dark' 
           ? 'bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-yellow-400' 
