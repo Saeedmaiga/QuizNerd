@@ -6,6 +6,7 @@ import QuestionCard from "./components/QuestionCard";
 import StartScreen from "./components/StartScreen.jsx"; // from SimonBranch
 import Timer from "./components/Timer";
 import CelebrationAnimation from "./components/CelebrationAnimation";                  // from SimonBranch
+import ProfilePage from "./components/ProfilePage";  // NEW
 
 import LoginButton from "./components/LoginButton";      // from main
 import LogoutButton from "./components/LogoutButton";    // from main
@@ -84,6 +85,9 @@ function App() {
   // Daily Challenge
   const [dailyChallengeConfig, setDailyChallengeConfig] = useState(null);
   const [isDailyChallenge, setIsDailyChallenge] = useState(false);
+
+  // Profile
+  const [showProfile, setShowProfile] = useState(false);
 
   // Keyboard shortcuts: 1-4 select option, H=hint, F=50/50, N=next
   useEffect(() => {
@@ -262,7 +266,7 @@ const playSound = useCallback((soundName) => {
     setLearningModeData(null);
     setDoublePointsActive(false);
     setExtraTimeUsed(false);
-    setCurrentTimerDuration(10);
+    setCurrentTimerDuration(25);
     setIsDailyChallenge(false);
     setDailyChallengeConfig(null);
   };
@@ -673,6 +677,18 @@ const playSound = useCallback((soundName) => {
       </div>
     );
   }
+  if (showProfile) {
+  return (
+    <ProfilePage
+      onBack={() => {
+        setShowProfile(false);
+        playSound("click");
+      }}
+      themeClasses={themeClasses}
+      playSound={playSound} // ✅ Pass playSound as a prop here
+    />
+  );
+}
 
   // Start screen (from SimonBranch) before showing the selector
   if (!quizStarted) {
@@ -683,6 +699,8 @@ const playSound = useCallback((soundName) => {
             setQuizStarted(true);
             playSound('click');
           }} 
+          themeClasses={themeClasses}
+
         />
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <SoundControls 
@@ -703,6 +721,20 @@ const playSound = useCallback((soundName) => {
         {/* Header */}
         <div className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-700/50">
           <div className="flex justify-between items-center p-4">
+                {/* Profile button on top-left */}
+            <button
+              onClick={() => {
+                setShowProfile(true);
+                playSound("click");
+              }}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 
+                  bg-gradient-to-r from-indigo-600 to-purple-600 
+                  hover:from-indigo-700 hover:to-purple-700 
+                  text-white px-4 py-2 rounded-lg font-semibold 
+                  shadow-md transition-all hover:scale-105"
+           >
+              Profile
+            </button>
             <div className="text-center flex-1">
               <h1 className={`text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent`}>
                 QuizNerds
@@ -775,28 +807,8 @@ const playSound = useCallback((soundName) => {
         setMusicEnabled={setMusicEnabled}
         theme={theme}
       />
-
       <div className="text-center mb-8">
-        <h1 className={`text-4xl font-bold ${themeClasses.accent} mb-2`}>React Quiz</h1>
-        <p className={`${themeClasses.text} mb-2`}>
-          {quizConfig.source === "opentdb"
-            ? "OpenTDB"
-            : quizConfig.source === "local"
-            ? "Local Questions"
-            : "Trivia API"}{" "}
-          • {quizConfig.difficulty} • {questions.length} questions
-        </p>
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={() => {
-              playSound('click');
-              startNewQuiz();
-            }}
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            New Quiz
-          </button>
-          <LogoutButton />
+        
       {/* XP and Level System */}
       <XPLevelSystem 
         onLevelUp={handleLevelUp}
@@ -840,26 +852,15 @@ const playSound = useCallback((soundName) => {
             • {quizConfig.difficulty} • {questions.length} questions
           </p>
           <div className="flex gap-2 justify-center flex-wrap">
-            <button
-              onClick={startNewQuiz}
-              className={`${themeClasses.glass} text-xs px-3 py-1 rounded-full font-medium hover:scale-105 transition-all duration-200`}
-            >
-              🆕 New
-            </button>
-            <button
-              onClick={() => setShowStats(true)}
-              className={`${themeClasses.glass} text-xs px-3 py-1 rounded-full font-medium hover:scale-105 transition-all duration-200`}
-              title="View stats"
-            >
-              📊 Stats
-            </button>
-            <button
-              onClick={() => setShowAchievements(true)}
-              className={`${themeClasses.glass} text-xs px-3 py-1 rounded-full font-medium hover:scale-105 transition-all duration-200`}
-              title="View achievements"
-            >
-              🏆 Achievements
-            </button>
+          <button
+            onClick={startNewQuiz}
+            className={`${themeClasses.glass} text-xs px-3 py-1 rounded-full font-medium 
+                      bg-gradient-to-r from-green-500 to-emerald-600 
+                      hover:from-green-600 hover:to-emerald-700 
+                      text-white shadow-md hover:scale-105 transition-all duration-200`}
+          >
+            🆕 New
+          </button>
             <LogoutButton theme={theme} />
           </div>
         </div>
@@ -898,7 +899,6 @@ const playSound = useCallback((soundName) => {
           {/* Timer (SimonBranch) — only count down while waiting for an answer */}
           {!showFeedback && (
             <Timer
-              duration={20}
               duration={currentTimerDuration}
               onTimeUp={() => {
               setShowFeedback(true);
@@ -1014,40 +1014,6 @@ const playSound = useCallback((soundName) => {
         theme={theme}
       />
 
-      {/* Buttons fixed bottom-right */}
-      <div className="fixed bottom-3 right-3 flex flex-col gap-2 z-40">
-        <button
-          className={`bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 py-2 px-3 rounded-lg shadow-lg font-semibold transition-all duration-200 hover:scale-105 text-sm ${
-            remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback ? "opacity-50 cursor-not-allowed hover:scale-100" : ""
-          }`}
-          onClick={() => {
-            playSound('click');
-            useHint();
-          }}
-          disabled={remainingHints <= 0 || hintUsed || selectedAnswer || showFeedback}
-        >
-          <span className="flex items-center gap-1">
-            <span className="text-sm">💡</span>
-            <span>Hint ({remainingHints})</span>
-          </span>
-        </button>
-        <button
-          className={`bg-gradient-to-r from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 py-2 px-3 rounded-lg shadow-lg font-semibold transition-all duration-200 hover:scale-105 text-sm ${
-            remaining5050 <= 0 ? "opacity-50 cursor-not-allowed hover:scale-100" : ""
-          }`}
-          onClick={() => {
-            playSound('click');
-            use5050();
-          }}
-          disabled={remaining5050 <= 0}
-        >
-          <span className="flex items-center gap-1">
-            <span className="text-sm">🎯</span>
-            <span>50/50 ({remaining5050})</span>
-          </span>
-        </button>
-      </div>
-
       {/* Streak bar fixed bottom-left */}
       <div className="fixed bottom-3 left-3 z-40">
         <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500 text-black font-bold py-2 px-4 rounded-lg shadow-lg border border-yellow-300/30 backdrop-blur-sm">
@@ -1080,7 +1046,10 @@ const playSound = useCallback((soundName) => {
         />
       )}
     </div>
+    </div>
+
   );
-}
+};
+
 
 export default App;
