@@ -19,6 +19,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 // Routes
 app.use('/api/quizzes', require('./routes/quizzes'));
 app.use('/api/external', require('./routes/external'));
+app.use('/api/multiplayer', require('./routes/multiplayer'));
 
 app.use((err, req, res, next) => {
   console.error(err);

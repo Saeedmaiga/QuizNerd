@@ -28,7 +28,7 @@ import apiService from "./services/api";                 // from main
 import { questions as localQuestions } from "./data/questions";
 
 function App() {
-  const { isAuthenticated, isLoading } = useAuth0();
+  const { isAuthenticated, isLoading, user } = useAuth0();
 
   // Questions & game state
   const [questions, setQuestions] = useState([]);
@@ -88,6 +88,69 @@ function App() {
 
   // Profile
   const [showProfile, setShowProfile] = useState(false);
+
+  // Multiplayer state
+  const [isMultiplayer, setIsMultiplayer] = useState(false);
+  const [multiplayerSessionCode, setMultiplayerSessionCode] = useState(null);
+  const [multiplayerPlayers, setMultiplayerPlayers] = useState([]);
+  const [multiplayerLeaderboard, setMultiplayerLeaderboard] = useState([]);
+  const [currentUsername, setCurrentUsername] = useState('');
+
+  // Fetch leaderboard during multiplayer session
+  useEffect(() => {
+    if (isMultiplayer && multiplayerSessionCode && !isFinished) {
+      const interval = setInterval(async () => {
+        try {
+          const response = await fetch(`http://localhost:4000/api/multiplayer/session/${multiplayerSessionCode}/leaderboard`);
+          if (response.ok) {
+            const data = await response.json();
+            setMultiplayerLeaderboard(data.leaderboard);
+          }
+        } catch (error) {
+          console.error('Error fetching leaderboard:', error);
+        }
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isMultiplayer, multiplayerSessionCode, isFinished, currentQuestion]);
+
+  // Handle starting multiplayer session
+  const handleStartMultiplayer = async (sessionCode, config, userId, username) => {
+    try {
+      // Fetch the quiz questions
+      setLoading(true);
+      setCurrentUsername(username);
+      const data = await apiService.fetchQuestions(config.source || 'opentdb', {
+        amount: config.amount || 10,
+        limit: config.amount || 10,
+        difficulty: config.difficulty || 'medium',
+        category: config.category,
+        categories: config.category,
+      });
+
+      const transformedQuestions = data.questions.map((q) => ({
+        question: q.text,
+        options: q.options.map((opt) => opt.text),
+        answer: q.options.find((opt) => opt.isCorrect)?.text,
+        category: q.category,
+        difficulty: q.difficulty,
+        source: data.source,
+      }));
+
+      setQuestions(transformedQuestions);
+      setIsMultiplayer(true);
+      setMultiplayerSessionCode(sessionCode);
+      setShowProfile(false);
+      setShowQuizSelector(false);
+      resetQuiz();
+    } catch (err) {
+      setError(err.message || "Failed to start multiplayer session");
+      console.error("Failed to start multiplayer session:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Keyboard shortcuts: 1-4 select option, H=hint, F=50/50, N=next
   useEffect(() => {
@@ -382,7 +445,7 @@ const playSound = useCallback((soundName) => {
     }
   };
 
-  const handleAnswer = (option) => {
+  const handleAnswer = async (option) => {
     if (showFeedback) return;
 
     playSound('click');
@@ -404,7 +467,28 @@ const playSound = useCallback((soundName) => {
       },
     ]);
 
-    if (option === questions[currentQuestion].answer) {
+    const isCorrect = option === questions[currentQuestion].answer;
+
+    // Submit answer to multiplayer session if in multiplayer mode
+    if (isMultiplayer && multiplayerSessionCode && user?.sub) {
+      try {
+        // Submit to API
+        await fetch(`http://localhost:4000/api/multiplayer/session/${multiplayerSessionCode}/answer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.sub,
+            questionIndex: currentQuestion,
+            answer: option,
+            isCorrect,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to submit multiplayer answer:', error);
+      }
+    }
+
+    if (isCorrect) {
       playSound('correct');
       const pointsEarned = doublePointsActive ? 2 : 1;
       setScore((s) => s + pointsEarned);
@@ -685,7 +769,9 @@ const playSound = useCallback((soundName) => {
         playSound("click");
       }}
       themeClasses={themeClasses}
-      playSound={playSound} // ✅ Pass playSound as a prop here
+      playSound={playSound}
+      onStartMultiplayer={handleStartMultiplayer}
+      theme={theme}
     />
   );
 }
@@ -1023,6 +1109,33 @@ const playSound = useCallback((soundName) => {
           </span>
         </div>
       </div>
+
+      {/* Multiplayer Leaderboard */}
+      {isMultiplayer && multiplayerLeaderboard.length > 0 && (
+        <div className="fixed top-20 right-3 z-40 max-w-xs">
+          <div className={`${themeClasses.card} rounded-xl p-4 shadow-2xl border-2 border-purple-500/50`}>
+            <h3 className="text-sm font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              🏆 Leaderboard
+            </h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {multiplayerLeaderboard.map((player, index) => (
+                <div
+                  key={index}
+                  className={`${themeClasses.panelBg} rounded-lg p-2 flex items-center justify-between ${
+                    player.username === currentUsername ? 'ring-2 ring-purple-400' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs">#{index + 1}</span>
+                    <span className="text-sm font-semibold truncate max-w-[120px]">{player.username}</span>
+                  </div>
+                  <span className="text-xs font-bold">{player.score}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {showStats && (

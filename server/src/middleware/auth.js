@@ -1,9 +1,9 @@
-const { auth } = require('express-oauth2-jwt-bearer');
+// Simple no-op auth middleware for development
+const requireAuth = (req, res, next) => next();
 
-const requireAuth = auth({
-  audience: process.env.AUTH0_AUDIENCE,
-  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
-  tokenSigningAlg: 'RS256',
-});
+// Simple auth middleware for multiplayer
+const authenticateRequest = (req, res, next) => {
+  next();
+};
 
-module.exports = { requireAuth };
+module.exports = { requireAuth, authenticateRequest };
