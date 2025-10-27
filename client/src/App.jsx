@@ -262,7 +262,7 @@ const playSound = useCallback((soundName) => {
     setLearningModeData(null);
     setDoublePointsActive(false);
     setExtraTimeUsed(false);
-    setCurrentTimerDuration(10);
+    setCurrentTimerDuration(20);
     setIsDailyChallenge(false);
     setDailyChallengeConfig(null);
   };
@@ -898,7 +898,6 @@ const playSound = useCallback((soundName) => {
           {/* Timer (SimonBranch) — only count down while waiting for an answer */}
           {!showFeedback && (
             <Timer
-              duration={20}
               duration={currentTimerDuration}
               onTimeUp={() => {
               setShowFeedback(true);
@@ -1081,6 +1080,8 @@ const playSound = useCallback((soundName) => {
       )}
     </div>
   );
-}
+  </div>
 
+</div>  );
+}
 export default App;
