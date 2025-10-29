@@ -63,17 +63,15 @@ function App() {
   // Animation state
   const [questionTransition, setQuestionTransition] = useState(false);
 
-  // Answers history for review
   const [userAnswers, setUserAnswers] = useState([]);
 
-  // Modals
+  
   const [showStats, setShowStats] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showLearningMode, setShowLearningMode] = useState(false);
   const [learningModeData, setLearningModeData] = useState(null);
 
-  // XP and Leveling
   const [userLevel, setUserLevel] = useState(1);
   const [userXP, setUserXP] = useState(0);
 
@@ -83,7 +81,7 @@ function App() {
   const [currentTimerDuration, setCurrentTimerDuration] = useState(10);
 
   // Daily Challenge
-  const [dailyChallengeConfig, setDailyChallengeConfig] = useState(null);
+  const [dailyChallengeConfig, setDailyChallengeConfig] = useState(none);
   const [isDailyChallenge, setIsDailyChallenge] = useState(false);
 
   // Profile
