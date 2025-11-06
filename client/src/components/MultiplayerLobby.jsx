@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const API_BASE_URL = 'http://localhost:4000/api/multiplayer';
 
@@ -11,33 +11,47 @@ export default function MultiplayerLobby({
   theme,
   themeClasses 
 }) {
+  const gameStartedRef = useRef(false);
   const [session, setSession] = useState(null);
   const [players, setPlayers] = useState([]);
   const [isHost, setIsHost] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Don't poll if game has already started
+    if (gameStartedRef.current) return;
+
+    const fetchSession = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/session/${sessionCode}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        setSession(data);
+        setPlayers(data.players || []);
+        setIsHost(data.hostId === userId);
+        
+        // If session status is IN_PROGRESS and we have questions, auto-start the game
+        if (data.status === 'IN_PROGRESS' && data.questions && data.questions.length > 0 && !gameStartedRef.current) {
+          gameStartedRef.current = true;
+          onStartSession(sessionCode, data.quizConfig, data.questions);
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchSession();
-    const interval = setInterval(fetchSession, 2000); // Poll every 2 seconds
+    const interval = setInterval(() => {
+      if (!gameStartedRef.current) {
+        fetchSession();
+      }
+    }, 2000); // Poll every 2 seconds
     
     return () => clearInterval(interval);
-  }, [sessionCode]);
-
-  const fetchSession = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/session/${sessionCode}`);
-      if (!response.ok) return;
-      
-      const data = await response.json();
-      setSession(data);
-      setPlayers(data.players || []);
-      setIsHost(data.hostId === userId);
-    } catch (error) {
-      console.error('Error fetching session:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [sessionCode, userId, onStartSession]);
 
   const handleLeaveSession = async () => {
     try {
@@ -52,8 +66,21 @@ export default function MultiplayerLobby({
     }
   };
 
-  const handleStartSession = () => {
-    onStartSession(sessionCode, session.quizConfig);
+  const handleStartSession = async () => {
+    // Host needs to fetch questions first, then start the session
+    if (isHost) {
+      try {
+        // Mark as started to prevent polling from triggering again
+        gameStartedRef.current = true;
+        // This will be handled by the parent component
+        // We'll call onStartSession which will fetch questions and start the game
+        onStartSession(sessionCode, session.quizConfig);
+      } catch (error) {
+        console.error('Error starting session:', error);
+        gameStartedRef.current = false; // Reset on error
+      }
+    }
+    // Non-host players wait for session status to change (handled in fetchSession)
   };
 
   if (loading) {
@@ -159,10 +186,10 @@ export default function MultiplayerLobby({
           {isHost && (
             <button
               onClick={handleStartSession}
-              disabled={players.length < 2}
+              disabled={players.length < 1}
               className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {players.length < 2 ? 'Waiting for players...' : 'Start Game'}
+              {players.length < 1 ? 'Waiting for players...' : 'Start Game'}
             </button>
           )}
         </div>
