@@ -81,7 +81,7 @@ function App() {
   const [currentTimerDuration, setCurrentTimerDuration] = useState(10);
 
   // Daily Challenge
-  const [dailyChallengeConfig, setDailyChallengeConfig] = useState(none);
+  const [dailyChallengeConfig, setDailyChallengeConfig] = useState(null);
   const [isDailyChallenge, setIsDailyChallenge] = useState(false);
 
   // Profile
