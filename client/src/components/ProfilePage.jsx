@@ -54,8 +54,16 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
     setMultiplayerMode('lobby');
   };
 
-  const handleStartMultiplayerSession = (code, config) => {
-    onStartMultiplayer(code, config, userId, username);
+  const handleStartMultiplayerSession = async (code, config, questions) => {
+    // If questions are provided (from server), use them directly
+    // Otherwise, fetch questions (host only)
+    if (questions && questions.length > 0) {
+      // Questions already fetched from server, start game directly
+      onStartMultiplayer(code, config, userId, username, questions);
+    } else {
+      // Host needs to fetch questions first, then start
+      onStartMultiplayer(code, config, userId, username);
+    }
   };
 
   const handleLeaveMultiplayer = () => {

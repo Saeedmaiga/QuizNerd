@@ -114,27 +114,63 @@ function App() {
   }, [isMultiplayer, multiplayerSessionCode, isFinished, currentQuestion]);
 
   // Handle starting multiplayer session
-  const handleStartMultiplayer = async (sessionCode, config, userId, username) => {
+  const handleStartMultiplayer = async (sessionCode, config, userId, username, serverQuestions = null) => {
     try {
-      // Fetch the quiz questions
       setLoading(true);
       setCurrentUsername(username);
-      const data = await apiService.fetchQuestions(config.source || 'opentdb', {
-        amount: config.amount || 10,
-        limit: config.amount || 10,
-        difficulty: config.difficulty || 'medium',
-        category: config.category,
-        categories: config.category,
-      });
+      
+      let transformedQuestions = [];
+      
+      // Check if questions were provided from server (for joined players)
+      if (serverQuestions && serverQuestions.length > 0) {
+        // Use questions from server (they should already be in the correct format)
+        transformedQuestions = serverQuestions.map((q) => ({
+          question: q.question || q.text || '',
+          options: Array.isArray(q.options) ? q.options : [],
+          answer: q.answer || (Array.isArray(q.options) ? q.options.find((opt) => opt.isCorrect)?.text : ''),
+          category: q.category || '',
+          difficulty: q.difficulty || 'medium',
+          source: q.source || config.source || 'opentdb',
+        }));
+      } else {
+        // Host: Fetch questions and send to server
+        const data = await apiService.fetchQuestions(config.source || 'opentdb', {
+          amount: config.amount || 10,
+          limit: config.amount || 10,
+          difficulty: config.difficulty || 'medium',
+          category: config.category,
+          categories: config.category,
+        });
 
-      const transformedQuestions = data.questions.map((q) => ({
-        question: q.text,
-        options: q.options.map((opt) => opt.text),
-        answer: q.options.find((opt) => opt.isCorrect)?.text,
-        category: q.category,
-        difficulty: q.difficulty,
-        source: data.source,
-      }));
+        transformedQuestions = data.questions.map((q) => ({
+          question: q.text,
+          options: q.options.map((opt) => opt.text),
+          answer: q.options.find((opt) => opt.isCorrect)?.text,
+          category: q.category,
+          difficulty: q.difficulty,
+          source: data.source,
+        }));
+
+        // Host sends questions to server to start the session
+        try {
+          const startResponse = await fetch(`http://localhost:4000/api/multiplayer/start/${sessionCode}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userId,
+              questions: transformedQuestions,
+            }),
+          });
+
+          if (!startResponse.ok) {
+            const errorData = await startResponse.json();
+            throw new Error(errorData.error || 'Failed to start session on server');
+          }
+        } catch (startErr) {
+          console.error('Failed to start session on server:', startErr);
+          throw startErr;
+        }
+      }
 
       setQuestions(transformedQuestions);
       setIsMultiplayer(true);
@@ -1134,8 +1170,6 @@ const playSound = useCallback((soundName) => {
           </div>
         </div>
       )}
-
-      {/* Modals */}
       {showStats && (
         <StatsModal onClose={() => setShowStats(false)} />
       )}
