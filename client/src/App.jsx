@@ -890,6 +890,39 @@ const playSound = useCallback((soundName) => {
                 onStartChallenge={handleDailyChallengeStart}
                 theme={theme}
               />
+            {/* 🚀 NEW: Multiplayer Session Card (Structured for style matching) 🚀 */}
+            <div className={`${themeClasses.card} p-6 rounded-2xl shadow-2xl border-t-4 border-cyan-500`}>
+              <div className="flex justify-between items-start mb-4">
+                  <h2 className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400`}>
+                      🎮 Multiplayer Session
+                  </h2>
+                  <span className="text-sm font-semibold text-cyan-400">LIVE</span>
+              </div>
+
+              <p className="text-gray-400 mb-6 text-sm">
+                  Challenge your friends in real-time. Create a private room or join an existing session with a code.
+              </p>
+              
+              <button
+                onClick={() => {
+                  // This action routes the user to the Profile page, where the 
+                  // multiplayer session creation/joining logic is handled.
+                  setShowQuizSelector(false);
+                  setShowProfile(true);
+                  playSound('click');
+                }}
+                className={`
+                  ${themeClasses.button} 
+                  w-full py-3 
+                  rounded-lg font-semibold text-lg
+                  shadow-lg transition-all hover:scale-[1.01]
+                  bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700
+                `}
+              >
+                Start Multiplayer
+              </button>
+            </div>
+            {/* END NEW MULTIPLAYER CARD */}
             </div>
           </div>
         </div>
