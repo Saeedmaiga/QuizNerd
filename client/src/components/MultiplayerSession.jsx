@@ -112,6 +112,12 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
             >
               🔗 Join Session
             </button>
+            <button
+            //onClick={handleInviteFriends}
+            className="w-full py-3 rounded-lg bg-gradient-to-r from-pink-500 to-rose-600 text-white font-semibold hover:scale-105 transition-transform shadow-md"
+            >
+            📩 Invite Friends
+          </button>
           </div>
         )}
 
