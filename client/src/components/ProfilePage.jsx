@@ -9,7 +9,7 @@ import ThemeToggle from "./ThemeToggle";
 import SoundControls from "./SoundControls";
 import AddFriends from "./AddFriends";
 
-export default function ProfilePage({ onBack, themeClasses, onStartMultiplayer, theme, setTheme }) {
+export default function ProfilePage({ onBack, themeClasses, playSound, onStartMultiplayer, theme, setTheme }) {
   const [showAchievements, setShowAchievements] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
