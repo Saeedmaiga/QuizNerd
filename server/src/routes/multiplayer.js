@@ -109,6 +109,7 @@ router.get('/session/:sessionCode', async (req, res, next) => {
       status: session.status,
       maxPlayers: session.maxPlayers,
       quizConfig: session.quizConfig,
+      questions: session.questions || [],
       startedAt: session.startedAt,
     });
   } catch (error) {
@@ -132,16 +133,20 @@ router.post('/start/:sessionCode', async (req, res, next) => {
       return res.status(403).json({ error: 'Only the host can start the session' });
     }
 
-    if (session.players.length < 2) {
-      return res.status(400).json({ error: 'Need at least 2 players to start' });
+    if (session.players.length < 1) {
+      return res.status(400).json({ error: 'Need at least 1 player to start' });
     }
 
     if (session.status !== 'WAITING') {
       return res.status(400).json({ error: 'Session already started' });
     }
 
+    if (!questions || questions.length === 0) {
+      return res.status(400).json({ error: 'Questions are required to start the session' });
+    }
+
     session.status = 'IN_PROGRESS';
-    session.questions = questions || [];
+    session.questions = questions;
     session.startedAt = new Date();
     await session.save();
     

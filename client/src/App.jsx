@@ -24,6 +24,11 @@ import XPLevelSystem from "./components/XPLevelSystem"; // NEW
 import LearningMode from "./components/LearningMode"; // NEW
 import apiService from "./services/api";                 // from main
 
+//imports for multiplayer use
+import MultiplayerLobby from "./components/MultiplayerLobby";
+import MultiplayerSession from "./components/MultiplayerSession";
+
+
 // local questions support (SimonBranch)
 import { questions as localQuestions } from "./data/questions";
 
@@ -63,17 +68,15 @@ function App() {
   // Animation state
   const [questionTransition, setQuestionTransition] = useState(false);
 
-  // Answers history for review
   const [userAnswers, setUserAnswers] = useState([]);
 
-  // Modals
+  
   const [showStats, setShowStats] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showLearningMode, setShowLearningMode] = useState(false);
   const [learningModeData, setLearningModeData] = useState(null);
 
-  // XP and Leveling
   const [userLevel, setUserLevel] = useState(1);
   const [userXP, setUserXP] = useState(0);
 
@@ -116,27 +119,63 @@ function App() {
   }, [isMultiplayer, multiplayerSessionCode, isFinished, currentQuestion]);
 
   // Handle starting multiplayer session
-  const handleStartMultiplayer = async (sessionCode, config, userId, username) => {
+  const handleStartMultiplayer = async (sessionCode, config, userId, username, serverQuestions = null) => {
     try {
-      // Fetch the quiz questions
       setLoading(true);
       setCurrentUsername(username);
-      const data = await apiService.fetchQuestions(config.source || 'opentdb', {
-        amount: config.amount || 10,
-        limit: config.amount || 10,
-        difficulty: config.difficulty || 'medium',
-        category: config.category,
-        categories: config.category,
-      });
+      
+      let transformedQuestions = [];
+      
+      // Check if questions were provided from server (for joined players)
+      if (serverQuestions && serverQuestions.length > 0) {
+        // Use questions from server (they should already be in the correct format)
+        transformedQuestions = serverQuestions.map((q) => ({
+          question: q.question || q.text || '',
+          options: Array.isArray(q.options) ? q.options : [],
+          answer: q.answer || (Array.isArray(q.options) ? q.options.find((opt) => opt.isCorrect)?.text : ''),
+          category: q.category || '',
+          difficulty: q.difficulty || 'medium',
+          source: q.source || config.source || 'opentdb',
+        }));
+      } else {
+        // Host: Fetch questions and send to server
+        const data = await apiService.fetchQuestions(config.source || 'opentdb', {
+          amount: config.amount || 10,
+          limit: config.amount || 10,
+          difficulty: config.difficulty || 'medium',
+          category: config.category,
+          categories: config.category,
+        });
 
-      const transformedQuestions = data.questions.map((q) => ({
-        question: q.text,
-        options: q.options.map((opt) => opt.text),
-        answer: q.options.find((opt) => opt.isCorrect)?.text,
-        category: q.category,
-        difficulty: q.difficulty,
-        source: data.source,
-      }));
+        transformedQuestions = data.questions.map((q) => ({
+          question: q.text,
+          options: q.options.map((opt) => opt.text),
+          answer: q.options.find((opt) => opt.isCorrect)?.text,
+          category: q.category,
+          difficulty: q.difficulty,
+          source: data.source,
+        }));
+
+        // Host sends questions to server to start the session
+        try {
+          const startResponse = await fetch(`http://localhost:4000/api/multiplayer/start/${sessionCode}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userId,
+              questions: transformedQuestions,
+            }),
+          });
+
+          if (!startResponse.ok) {
+            const errorData = await startResponse.json();
+            throw new Error(errorData.error || 'Failed to start session on server');
+          }
+        } catch (startErr) {
+          console.error('Failed to start session on server:', startErr);
+          throw startErr;
+        }
+      }
 
       setQuestions(transformedQuestions);
       setIsMultiplayer(true);
@@ -754,9 +793,11 @@ const playSound = useCallback((soundName) => {
   // Require login
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold text-purple-600 mb-4">QuizNerds</h1>
-        <p className="text-gray-400 mb-6">Please log in to access the quiz.</p>
+    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-purple-900 to-indigo-900 text-white flex flex-col items-center justify-center">
+      <h1 className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-1 drop-shadow-lg">
+        QuizNerds
+      </h1>
+      <p className="text-gray-300 mb-8 text-lg">Please login to access quiz</p>
         <LoginButton />
       </div>
     );
@@ -856,6 +897,39 @@ const playSound = useCallback((soundName) => {
                 onStartChallenge={handleDailyChallengeStart}
                 theme={theme}
               />
+            {/* 🚀 NEW: Multiplayer Session Card (Structured for style matching) 🚀 */}
+            <div className={`${themeClasses.card} p-6 rounded-2xl shadow-2xl border-t-4 border-cyan-500`}>
+              <div className="flex justify-between items-start mb-4">
+                  <h2 className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400`}>
+                      🎮 Multiplayer Session
+                  </h2>
+                  <span className="text-sm font-semibold text-cyan-400">LIVE</span>
+              </div>
+
+              <p className="text-gray-400 mb-6 text-sm">
+                  Challenge your friends in real-time. Create a private room or join an existing session with a code.
+              </p>
+              
+              <button
+                onClick={() => {
+                  // This action routes the user to the Profile page, where the 
+                  // multiplayer session creation/joining logic is handled.
+                  setShowQuizSelector(false);
+                  setShowProfile(true);
+                  playSound('click');
+                }}
+                className={`
+                  ${themeClasses.button} 
+                  w-full py-3 
+                  rounded-lg font-semibold text-lg
+                  shadow-lg transition-all hover:scale-[1.01]
+                  bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700
+                `}
+              >
+                Start Multiplayer
+              </button>
+            </div>
+            {/* END NEW MULTIPLAYER CARD */}
             </div>
           </div>
         </div>
@@ -1136,8 +1210,6 @@ const playSound = useCallback((soundName) => {
           </div>
         </div>
       )}
-
-      {/* Modals */}
       {showStats && (
         <StatsModal onClose={() => setShowStats(false)} />
       )}
