@@ -130,7 +130,7 @@ const QuizSelector = ({ onStart, loading, error }) => {
           Standard Quizzes
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
+        {/*<div>
           <label className="block text-sm font-semibold text-gray-200 mb-2">
             📡 Source
           </label>
@@ -143,6 +143,7 @@ const QuizSelector = ({ onStart, loading, error }) => {
             <option value="triviaapi">The Trivia API</option>
           </select>
         </div>
+        */}
 
         <div className="grid grid-cols-2 gap-3">
           <div>

@@ -27,7 +27,7 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
   const username = user?.name || user?.nickname || user?.email || "Player";
 
   const playClickSound = () => {
-    const audio = new Audio("/sounds/click.mp3");
+    const audio = new Audio("/button-click.mp3");
     audio.volume = 0.5;
     audio.play().catch(() => {});
   };
@@ -90,6 +90,8 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
         onBack={() => setShowAddFriends(false)}
         themeClasses={themeClasses}
         playSound={playClickSound}
+        userId={userId}
+        username={username}
       />
     );
   }
@@ -107,7 +109,7 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
             }}
             className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg font-semibold hover:scale-105 transition-transform"
           >
-            Back
+            ← Back
           </button>
         </header>
         <MultiplayerLobby
@@ -128,7 +130,6 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
     return (
       <div className={`min-h-screen p-8 flex flex-col items-center ${themeClasses.bg} ${themeClasses.text}`}>
         <header className="w-full mb-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Multiplayer</h1>
           <button
             onClick={() => {
               playClickSound();
@@ -137,8 +138,9 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
             }}
             className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg font-semibold hover:scale-105 transition-transform"
           >
-            Back
+            ← Back
           </button>
+          <h1 className="text-3xl font-bold">Multiplayer</h1>
         </header>
         <MultiplayerSession
           userId={userId}
@@ -163,7 +165,7 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
       }}
       className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:scale-105 transition-all"
     >
-      Back
+      ← Back
     </button>
     <div className="flex-1 text-center">
       <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
@@ -197,6 +199,12 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
       <div className="w-full flex flex-col gap-2 text-center">
         <p className="font-semibold text-lg">{username}</p>
         <p className="text-sm text-gray-500 dark:text-gray-300">Your profile</p>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-all font-mono">
+        ID: {userId}
+        </p>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-all font-mono">
+        Name: {username}
+        </p>
       </div>
 
       {/* Action Buttons */}
@@ -219,7 +227,7 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
           onClick={handleAddFriendsClick}
           className="w-full py-3 rounded-lg bg-gradient-to-r from-pink-500 to-rose-600 text-white font-semibold hover:scale-105 transition-transform shadow-md"
         >
-          🤝 Add Friends
+          🤝 Friends
         </button>
         <button
           onClick={handleMultiplayerClick}

@@ -24,6 +24,11 @@ import XPLevelSystem from "./components/XPLevelSystem"; // NEW
 import LearningMode from "./components/LearningMode"; // NEW
 import apiService from "./services/api";                 // from main
 
+//imports for multiplayer use
+import MultiplayerLobby from "./components/MultiplayerLobby";
+import MultiplayerSession from "./components/MultiplayerSession";
+
+
 // local questions support (SimonBranch)
 import { questions as localQuestions } from "./data/questions";
 
@@ -788,9 +793,11 @@ const playSound = useCallback((soundName) => {
   // Require login
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold text-purple-600 mb-4">QuizNerds</h1>
-        <p className="text-gray-400 mb-6">Please log in to access the quiz.</p>
+    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-purple-900 to-indigo-900 text-white flex flex-col items-center justify-center">
+      <h1 className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-1 drop-shadow-lg">
+        QuizNerds
+      </h1>
+      <p className="text-gray-300 mb-8 text-lg">Please login to access quiz</p>
         <LoginButton />
       </div>
     );
