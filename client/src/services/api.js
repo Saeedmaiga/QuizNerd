@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:4000/api';
+import API_BASE_URL, { API_ENDPOINTS } from '../config/api';
 
 class ApiService {
   async fetchQuestions(source = 'opentdb', options = {}) {
@@ -15,7 +15,7 @@ class ApiService {
       if (options.categories) params.set('categories', options.categories);
     }
 
-    const response = await fetch(`${API_BASE_URL}/external/${source}?${params}`);
+    const response = await fetch(`${API_ENDPOINTS.EXTERNAL}/${source}?${params}`);
     
     if (!response.ok) {
       throw new Error(`API Error: ${response.status}`);
@@ -25,7 +25,7 @@ class ApiService {
   }
 
   async getHealth() {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetch(`${API_ENDPOINTS.HEALTH}`);
     return response.json();
   }
 }

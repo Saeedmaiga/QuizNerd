@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { API_ENDPOINTS } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:4000/api/multiplayer';
-
-export default function MultiplayerSession({ userId, username, onSessionCreated, onSessionJoined, theme, themeClasses }) {
+export default function MultiplayerSession({ userId, username, onSessionCreated, onSessionJoined, theme, themeClasses, token }) {
   const [mode, setMode] = useState('select'); // 'select', 'create', 'join'
   const [sessionCode, setSessionCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isPublic, setIsPublic] = useState(false);
   const [quizConfig, setQuizConfig] = useState({
     source: 'opentdb',
     amount: 10,
@@ -26,13 +26,18 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
 
     try {
       console.log('Creating session with:', { userId, username, quizConfig });
-      const response = await fetch(`${API_BASE_URL}/create`, {
+      const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           userId,
           username,
           quizConfig,
+          isPublic: isPublic,
+          visibility: isPublic ? 'PUBLIC' : 'PRIVATE',
         }),
       });
 
@@ -62,9 +67,12 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/join`, {
+      const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/join`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           sessionCode: sessionCode.toUpperCase(),
           userId,
@@ -75,6 +83,34 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to join session');
+      }
+
+      const data = await response.json();
+      onSessionJoined(data.sessionCode);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinPublic = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/join-public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          username,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'No public sessions available');
       }
 
       const data = await response.json();
@@ -112,12 +148,14 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
             >
               🔗 Join Session
             </button>
+            
             <button
-            //onClick={handleInviteFriends}
-            className="w-full py-3 rounded-lg bg-gradient-to-r from-pink-500 to-rose-600 text-white font-semibold hover:scale-105 transition-transform shadow-md"
+              onClick={handleJoinPublic}
+              disabled={loading}
+              className="w-full py-3 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:scale-105 transition-transform shadow-md disabled:opacity-50"
             >
-            📩 Invite Friends
-          </button>
+              🎲 Join Random Game
+            </button>
           </div>
         )}
 
@@ -151,6 +189,19 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
                   <option value="medium">Medium</option>
                   <option value="hard">Hard</option>
                 </select>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="isPublic"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                  className="w-5 h-5 text-purple-600 rounded"
+                />
+                <label htmlFor="isPublic" className="text-sm font-medium cursor-pointer">
+                  Create as Public Session (Random players can join)
+                </label>
               </div>
             </div>
 

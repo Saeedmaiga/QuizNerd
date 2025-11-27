@@ -3,13 +3,13 @@ import AchievementModal from "./AchievementModal";
 import StatsModal from "./StatsModal";
 import MultiplayerSession from "./MultiplayerSession";
 import MultiplayerLobby from "./MultiplayerLobby";
-import { useAuth0 } from "@auth0/auth0-react";
 import LogoutButton from "./LogoutButton";
 import ThemeToggle from "./ThemeToggle";
 import SoundControls from "./SoundControls";
 import AddFriends from "./AddFriends";
+import EmailVerification from "./EmailVerification";
 
-export default function ProfilePage({ onBack, themeClasses, playSound, onStartMultiplayer, theme, setTheme }) {
+export default function ProfilePage({ onBack, themeClasses, playSound, onStartMultiplayer, theme, setTheme, user, onLogout }) {
   const [showAchievements, setShowAchievements] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
@@ -21,10 +21,8 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [showAddFriends, setShowAddFriends] = useState(false);
 
-  const { user } = useAuth0();
-
-  const userId = user?.sub || "temp-user-" + Date.now();
-  const username = user?.name || user?.nickname || user?.email || "Player";
+  const userId = user?.id || "temp-user-" + Date.now();
+  const username = user?.username || user?.name || user?.email || "Player";
 
   const playClickSound = () => {
     const audio = new Audio("/button-click.mp3");
@@ -86,13 +84,14 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
 };
   if (showAddFriends) {
     return (
-      <AddFriends
-        onBack={() => setShowAddFriends(false)}
-        themeClasses={themeClasses}
-        playSound={playClickSound}
-        userId={userId}
-        username={username}
-      />
+        <AddFriends
+          onBack={() => setShowAddFriends(false)}
+          themeClasses={themeClasses}
+          playSound={playClickSound}
+          userId={userId}
+          username={username}
+          token={localStorage.getItem('authToken')}
+        />
     );
   }
   
@@ -149,6 +148,7 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
           onSessionJoined={handleSessionJoined}
           theme={theme}
           themeClasses={themeClasses}
+          token={localStorage.getItem('authToken')}
         />
       </div>
     );
@@ -173,7 +173,7 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
       </h1>
     </div>
     <div className="flex items-center gap-3">
-      <LogoutButton theme={theme} />
+      <LogoutButton theme={theme} onLogout={onLogout} />
       <ThemeToggle theme={theme} setTheme={setTheme} isInHeader={true} />
       <SoundControls
         soundEnabled={soundEnabled}
@@ -205,6 +205,16 @@ export default function ProfilePage({ onBack, themeClasses, playSound, onStartMu
         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 break-all font-mono">
         Name: {username}
         </p>
+      </div>
+
+      {/* Email Verification Status */}
+      <div className="w-full mt-4">
+        <EmailVerification 
+          theme={theme} 
+          themeClasses={themeClasses} 
+          user={user} 
+          token={localStorage.getItem('authToken')}
+        />
       </div>
 
       {/* Action Buttons */}
