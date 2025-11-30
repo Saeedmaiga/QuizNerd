@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-
-const API_BASE_URL = 'http://localhost:4000/api/multiplayer';
+import InviteFriendsModal from './InviteFriendsModal';
+import { API_ENDPOINTS } from '../config/api';
 
 export default function MultiplayerLobby({ 
   sessionCode, 
@@ -16,6 +16,7 @@ export default function MultiplayerLobby({
   const [players, setPlayers] = useState([]);
   const [isHost, setIsHost] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     // Don't poll if game has already started
@@ -23,7 +24,7 @@ export default function MultiplayerLobby({
 
     const fetchSession = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/session/${sessionCode}`);
+            const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/session/${sessionCode}`);
         if (!response.ok) return;
         
         const data = await response.json();
@@ -55,7 +56,7 @@ export default function MultiplayerLobby({
 
   const handleLeaveSession = async () => {
     try {
-      await fetch(`${API_BASE_URL}/leave/${sessionCode}`, {
+      await fetch(`${API_ENDPOINTS.MULTIPLAYER}/leave/${sessionCode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
@@ -175,6 +176,16 @@ export default function MultiplayerLobby({
           </div>
         </div>
 
+        {/* Invite Friends Button (Host only) */}
+        {isHost && session?.status === 'WAITING' && (
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="w-full py-2 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-lg font-semibold transition"
+          >
+            🤝 Invite Friends
+          </button>
+        )}
+
         {/* Actions */}
         <div className="flex gap-3">
           <button
@@ -194,6 +205,17 @@ export default function MultiplayerLobby({
           )}
         </div>
       </div>
+
+      {/* Invite Friends Modal */}
+      {showInviteModal && (
+        <InviteFriendsModal
+          sessionCode={sessionCode}
+          userId={userId}
+          onClose={() => setShowInviteModal(false)}
+          theme={theme}
+          themeClasses={themeClasses}
+        />
+      )}
     </div>
   );
 }

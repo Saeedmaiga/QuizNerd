@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
 import Confetti from "react-confetti";
+import Login from "./components/Login";
 
 import QuestionCard from "./components/QuestionCard";
 import StartScreen from "./components/StartScreen.jsx"; // from SimonBranch
@@ -8,7 +8,6 @@ import Timer from "./components/Timer";
 import CelebrationAnimation from "./components/CelebrationAnimation";                  // from SimonBranch
 import ProfilePage from "./components/ProfilePage";  // NEW
 
-import LoginButton from "./components/LoginButton";      // from main
 import LogoutButton from "./components/LogoutButton";    // from main
 import QuizSelector from "./components/QuizSelector";    // from main
 import LoadingSpinner from "./components/LoadingSpinner";// from main
@@ -32,8 +31,14 @@ import MultiplayerSession from "./components/MultiplayerSession";
 // local questions support (SimonBranch)
 import { questions as localQuestions } from "./data/questions";
 
+import { API_ENDPOINTS } from './config/api';
+
 function App() {
-  const { isAuthenticated, isLoading, user } = useAuth0();
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const isAuthenticated = !!user;
 
   // Questions & game state
   const [questions, setQuestions] = useState([]);
@@ -99,12 +104,90 @@ function App() {
   const [multiplayerLeaderboard, setMultiplayerLeaderboard] = useState([]);
   const [currentUsername, setCurrentUsername] = useState('');
 
+  // Check for verification success in URL
+  const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
+
+  // Check for stored authentication on mount
+  useEffect(() => {
+    // Check if we're on verification success page
+    const urlParams = new URLSearchParams(window.location.search);
+    if (window.location.pathname === '/verification-success' || urlParams.get('verified') === 'true') {
+      setShowVerificationSuccess(true);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const storedToken = localStorage.getItem('authToken');
+    const storedUser = localStorage.getItem('user');
+    
+    if (storedToken && storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        setToken(storedToken);
+        
+        // Verify token is still valid
+        fetch(`${API_ENDPOINTS.USERS}/me`, {
+          headers: { 'Authorization': `Bearer ${storedToken}` }
+        })
+        .then(res => {
+          if (!res.ok) {
+            // Token invalid, clear storage
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            setUser(null);
+            setToken(null);
+          } else {
+            // Refresh user data to get updated verification status
+            return res.json();
+          }
+        })
+        .then(data => {
+          if (data?.user) {
+            setUser(data.user);
+            localStorage.setItem('user', JSON.stringify(data.user));
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          setUser(null);
+          setToken(null);
+        });
+      } catch (error) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+      }
+    }
+    
+    setIsLoading(false);
+  }, []);
+
+  // Handle login
+  const handleLogin = (userData, authToken) => {
+    setUser(userData);
+    setToken(authToken);
+    localStorage.setItem('authToken', authToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    resetQuiz();
+    setShowProfile(false);
+    setShowQuizSelector(true);
+  };
+
   // Fetch leaderboard during multiplayer session
   useEffect(() => {
     if (isMultiplayer && multiplayerSessionCode && !isFinished) {
       const interval = setInterval(async () => {
         try {
-          const response = await fetch(`http://localhost:4000/api/multiplayer/session/${multiplayerSessionCode}/leaderboard`);
+          const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/session/${multiplayerSessionCode}/leaderboard`);
           if (response.ok) {
             const data = await response.json();
             setMultiplayerLeaderboard(data.leaderboard);
@@ -158,9 +241,12 @@ function App() {
 
         // Host sends questions to server to start the session
         try {
-          const startResponse = await fetch(`http://localhost:4000/api/multiplayer/start/${sessionCode}`, {
+          const startResponse = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/start/${sessionCode}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({
               userId: userId,
               questions: transformedQuestions,
@@ -509,14 +595,14 @@ const playSound = useCallback((soundName) => {
     const isCorrect = option === questions[currentQuestion].answer;
 
     // Submit answer to multiplayer session if in multiplayer mode
-    if (isMultiplayer && multiplayerSessionCode && user?.sub) {
+    if (isMultiplayer && multiplayerSessionCode && user?.id) {
       try {
         // Submit to API
-        await fetch(`http://localhost:4000/api/multiplayer/session/${multiplayerSessionCode}/answer`, {
+        await fetch(`${API_ENDPOINTS.MULTIPLAYER}/session/${multiplayerSessionCode}/answer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user.sub,
+            userId: user.id,
             questionIndex: currentQuestion,
             answer: option,
             isCorrect,
@@ -790,16 +876,40 @@ const playSound = useCallback((soundName) => {
   // Auth0 global loading
   if (isLoading) return <LoadingSpinner />;
 
-  // Require login
+  // Show verification success message
+  if (showVerificationSuccess && isAuthenticated) {
+    return (
+      <div className={`min-h-screen ${getThemeClasses().bg} ${getThemeClasses().text} flex items-center justify-center p-4`}>
+        <div className={`${getThemeClasses().card} rounded-2xl p-8 max-w-md w-full text-center`}>
+          <div className="text-6xl mb-4">✅</div>
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
+            Email Verified!
+          </h2>
+          <p className="text-gray-400 mb-6">
+            Your email has been successfully verified. You now have full access to all features.
+          </p>
+          <button
+            onClick={() => {
+              setShowVerificationSuccess(false);
+              setShowProfile(true);
+            }}
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold transition"
+          >
+            Go to Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated
   if (!isAuthenticated) {
     return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-purple-900 to-indigo-900 text-white flex flex-col items-center justify-center">
-      <h1 className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-1 drop-shadow-lg">
-        QuizNerds
-      </h1>
-      <p className="text-gray-300 mb-8 text-lg">Please login to access quiz</p>
-        <LoginButton />
-      </div>
+      <Login 
+        onLogin={handleLogin}
+        theme={theme}
+        themeClasses={getThemeClasses()}
+      />
     );
   }
   if (showProfile) {
@@ -814,6 +924,9 @@ const playSound = useCallback((soundName) => {
       playSound={playSound}
       onStartMultiplayer={handleStartMultiplayer}
       theme={theme}
+      setTheme={setTheme}
+      user={user}
+      onLogout={handleLogout}
     />
   );
 }
@@ -870,7 +983,7 @@ const playSound = useCallback((soundName) => {
               <p className={`text-gray-400 text-sm`}>Choose your quiz settings</p>
             </div>
             <div className="flex items-center gap-3">
-              <LogoutButton theme={theme} />
+              <LogoutButton theme={theme} onLogout={handleLogout} />
               <ThemeToggle theme={theme} setTheme={setTheme} isInHeader={true} />
               <SoundControls 
                 soundEnabled={soundEnabled} 
@@ -1022,7 +1135,7 @@ const playSound = useCallback((soundName) => {
           >
             🆕 New
           </button>
-            <LogoutButton theme={theme} />
+            <LogoutButton theme={theme} onLogout={handleLogout} />
           </div>
         </div>
       </div>
