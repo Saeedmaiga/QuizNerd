@@ -20,28 +20,54 @@ router.post('/register', async (req, res, next) => {
       name: z.string().optional(),
     });
 
-    const { username, email, password, name } = schema.parse(req.body);
+    let { username, email, password, name } = schema.parse(req.body);
 
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
+    // Trim and normalize inputs
+    username = username.trim();
+    email = email.toLowerCase().trim();
+    if (name) name = name.trim();
+
+    // Normalize for comparison (email is already lowercased on line 27)
+    const normalizedEmail = email; // Already lowercased and trimmed
+    const normalizedUsername = username.toLowerCase().trim();
+    
+    // Get all users and check for duplicates in memory
+    const allUsers = await User.find({}).select('username email _id');
+    
+    // Check for duplicates by comparing normalized values
+    const existingByEmail = allUsers.find(u => {
+      if (!u.email) return false;
+      return u.email.toLowerCase().trim() === normalizedEmail;
+    });
+    
+    const existingByUsername = allUsers.find(u => {
+      if (!u.username) return false;
+      return u.username.toLowerCase().trim() === normalizedUsername;
     });
 
-    if (existingUser) {
+    if (existingByEmail) {
       return res.status(400).json({ 
-        error: existingUser.email === email 
-          ? 'Email already registered' 
-          : 'Username already taken' 
+        error: 'Email already registered',
+        details: `The email "${normalizedEmail}" is already in use.`
+      });
+    }
+    
+    if (existingByUsername) {
+      return res.status(400).json({ 
+        error: 'Username already taken',
+        details: `The username "${username}" is already taken.`
       });
     }
 
-    // Create new user
+    // Create new user with normalized data
+    // Don't set auth0Sub at all - let it be undefined (sparse index won't index undefined values)
     const user = new User({
       username,
-      email,
+      email: email.toLowerCase(), // Store email in lowercase
       password, // Will be hashed by pre-save hook
       name: name || username,
-      emailVerified: false, // You can implement email verification later
+      emailVerified: false,
+      // Don't set auth0Sub - omit it entirely so it's undefined (not null)
     });
 
     await user.save();
@@ -72,7 +98,23 @@ router.post('/register', async (req, res, next) => {
       return res.status(400).json({ error: error.errors[0].message });
     }
     if (error.code === 11000) {
-      return res.status(400).json({ error: 'Username or email already exists' });
+      // MongoDB duplicate key error - extract which field caused it
+      const duplicateField = error.keyPattern ? Object.keys(error.keyPattern)[0] : 'field';
+      
+      // Handle auth0Sub errors specially (users don't provide this, so it's a system error)
+      if (duplicateField === 'auth0Sub') {
+        return res.status(400).json({ 
+          error: 'Registration failed',
+          details: 'There was an issue creating your account. Please try again or contact support.'
+        });
+      }
+      
+      // For email and username, provide user-friendly messages
+      const fieldName = duplicateField === 'email' ? 'Email' : duplicateField === 'username' ? 'Username' : 'Username or email';
+      return res.status(400).json({ 
+        error: `${fieldName} already exists`,
+        details: `The ${duplicateField} you provided is already registered.`
+      });
     }
     next(error);
   }
@@ -86,11 +128,17 @@ router.post('/login', async (req, res, next) => {
       password: z.string().min(1),
     });
 
-    const { username, password } = schema.parse(req.body);
+    let { username, password } = schema.parse(req.body);
 
-    // Find user by username or email
+    // Trim and normalize username (could be email or username)
+    username = username.trim();
+
+    // Find user by username or email (case-insensitive for email)
     const user = await User.findOne({
-      $or: [{ username }, { email: username }]
+      $or: [
+        { username: username },
+        { email: username.toLowerCase() }
+      ]
     });
 
     if (!user) {

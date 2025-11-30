@@ -40,7 +40,7 @@ export default function Login({ onLogin, theme, themeClasses }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        throw new Error(data.error || data.details || 'Authentication failed');
       }
 
       // Store token and user info
