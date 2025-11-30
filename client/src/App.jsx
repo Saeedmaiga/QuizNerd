@@ -807,6 +807,7 @@ const playSound = useCallback((soundName) => {
     <ProfilePage
       onBack={() => {
         setShowProfile(false);
+        setShowQuizSelector(true);
         playSound("click");
       }}
       themeClasses={themeClasses}
