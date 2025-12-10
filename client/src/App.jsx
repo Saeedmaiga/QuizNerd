@@ -28,7 +28,7 @@ import MultiplayerLobby from "./components/MultiplayerLobby";
 import MultiplayerSession from "./components/MultiplayerSession";
 
 
-// local questions support (SimonBranch)
+// local questions support
 import { questions as localQuestions } from "./data/questions";
 
 import { API_ENDPOINTS } from './config/api';
