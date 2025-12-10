@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const QuizCreationTool = ({ onSaveQuiz, onClose, theme }) => {
+const QuizCreationTool = ({ onSaveQuiz, onClose, theme, quizToEdit }) => {
   const [quizData, setQuizData] = useState({
     title: '',
     description: '',
@@ -48,6 +48,19 @@ const QuizCreationTool = ({ onSaveQuiz, onClose, theme }) => {
       ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700' 
       : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'
   };
+
+  // Initialize for editing
+  useEffect(() => {
+    if (quizToEdit) {
+      setQuizData({
+        title: quizToEdit.title,
+        description: quizToEdit.description,
+        category: quizToEdit.category,
+        difficulty: quizToEdit.difficulty,
+        questions: quizToEdit.questions || []
+      });
+    }
+  }, [quizToEdit]);
 
   const handleQuizInfoChange = (field, value) => {
     setQuizData(prev => ({
@@ -120,22 +133,26 @@ const QuizCreationTool = ({ onSaveQuiz, onClose, theme }) => {
 
     const quizToSave = {
       ...quizData,
-      id: Date.now(),
-      createdAt: new Date().toISOString(),
-      author: 'You', // Could be enhanced with user authentication
-      playCount: 0,
-      rating: 0
+      id: quizToEdit ? quizToEdit.id : Date.now(),
+      createdAt: quizToEdit ? quizToEdit.createdAt : new Date().toISOString(),
+      author: 'You',
+      playCount: quizToEdit ? quizToEdit.playCount : 0,
+      rating: quizToEdit ? quizToEdit.rating : 0
     };
 
-    // Save to localStorage
     const savedQuizzes = JSON.parse(localStorage.getItem('custom-quizzes') || '[]');
-    savedQuizzes.push(quizToSave);
-    localStorage.setItem('custom-quizzes', JSON.stringify(savedQuizzes));
 
-    if (onSaveQuiz) {
-      onSaveQuiz(quizToSave);
+    if (quizToEdit) {
+      // Replace existing quiz
+      const updatedQuizzes = savedQuizzes.map(q => q.id === quizToEdit.id ? quizToSave : q);
+      localStorage.setItem('custom-quizzes', JSON.stringify(updatedQuizzes));
+    } else {
+      // Add new quiz
+      savedQuizzes.push(quizToSave);
+      localStorage.setItem('custom-quizzes', JSON.stringify(savedQuizzes));
     }
 
+    if (onSaveQuiz) onSaveQuiz(quizToSave);
     alert('Quiz saved successfully!');
     onClose();
   };
@@ -146,14 +163,9 @@ const QuizCreationTool = ({ onSaveQuiz, onClose, theme }) => {
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold flex items-center gap-2">
             <span className="text-purple-500">✏️</span>
-            Create Custom Quiz
+            {quizToEdit ? 'Edit Quiz' : 'Create Custom Quiz'}
           </h3>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl"
-          >
-            ✖
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">✖</button>
         </div>
 
         <div className="space-y-6">

@@ -9,7 +9,8 @@ export default function MultiplayerLobby({
   onStartSession,
   onLeave,
   theme,
-  themeClasses 
+  themeClasses,
+  token
 }) {
   const gameStartedRef = useRef(false);
   const [session, setSession] = useState(null);
@@ -214,6 +215,7 @@ export default function MultiplayerLobby({
           onClose={() => setShowInviteModal(false)}
           theme={theme}
           themeClasses={themeClasses}
+          token={token}
         />
       )}
     </div>

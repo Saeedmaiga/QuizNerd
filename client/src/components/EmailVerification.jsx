@@ -95,7 +95,7 @@ export default function EmailVerification({ theme, themeClasses, user, token }) 
     );
   }
 
-  return (
+  /*return (
     <div className={`${themeClasses.card} rounded-xl p-4 space-y-3`}>
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-lg">Email Verification</h3>
@@ -154,5 +154,7 @@ export default function EmailVerification({ theme, themeClasses, user, token }) 
       )}
     </div>
   );
+  */
+  return null; // Temporarily disable the component UI
 }
 

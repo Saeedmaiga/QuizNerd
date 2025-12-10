@@ -7,6 +7,7 @@ export default function Login({ onLogin, theme, themeClasses }) {
     username: '',
     email: '',
     password: '',
+    confirmPassword: '',
     name: '',
   });
   const [error, setError] = useState(null);
@@ -15,6 +16,12 @@ export default function Login({ onLogin, theme, themeClasses }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -128,6 +135,22 @@ export default function Login({ onLogin, theme, themeClasses }) {
               <p className="text-xs text-gray-400 mt-1">Minimum 6 characters</p>
             )}
           </div>
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Confirm Password</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                minLength={6}
+                className={`w-full px-4 py-2 rounded-lg ${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                placeholder="••••••"
+              />
+            </div>
+          )}
+
 
           {error && (
             <div className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm">
