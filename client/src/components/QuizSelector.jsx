@@ -11,6 +11,7 @@ const QuizSelector = ({ onStart, loading, error }) => {
 
   const [customQuizzes, setCustomQuizzes] = useState([]);
   const [showCreationTool, setShowCreationTool] = useState(false);
+  const [quizToEdit, setQuizToEdit] = useState(null);
 
   useEffect(() => {
     // Load custom quizzes
@@ -37,6 +38,12 @@ const QuizSelector = ({ onStart, loading, error }) => {
   const handleQuizCreated = (newQuiz) => {
     setCustomQuizzes(prev => [...prev, newQuiz]);
   };
+
+  const handleDeleteQuiz = (id) => {
+  const updated = customQuizzes.filter(q => q.id !== id);
+  setCustomQuizzes(updated);
+  localStorage.setItem('custom-quizzes', JSON.stringify(updated));
+};
 
   const opentdbCategories = [
     { id: 9, name: 'General Knowledge' },
@@ -82,23 +89,40 @@ const QuizSelector = ({ onStart, loading, error }) => {
             </button>
           </div>
           <div className="space-y-3">
-            {customQuizzes.slice(0, 3).map((quiz) => (
-              <div key={quiz.id} className="bg-gray-700/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/30 hover:scale-105 transition-all duration-200">
-                <h4 className="font-bold text-white mb-1 text-sm">{quiz.title}</h4>
-                <p className="text-gray-300 text-xs mb-2 line-clamp-2">{quiz.description}</p>
-                <div className="flex justify-between items-center">
-                  <div className="text-xs text-gray-400 bg-gray-600/50 px-2 py-1 rounded-full">
-                    {quiz.questions.length}q • {quiz.difficulty}
-                  </div>
-                  <button
-                    onClick={() => handleCustomQuizStart(quiz)}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-3 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105"
-                  >
-                    🎮 Play
-                  </button>
-                </div>
-              </div>
-            ))}
+        {customQuizzes.slice(0, 3).map((quiz) => (
+        <div key={quiz.id} className="bg-gray-700/60 backdrop-blur-sm rounded-xl p-3 border border-gray-600/30 hover:scale-105 transition-all duration-200">
+          <h4 className="font-bold text-white mb-1 text-sm">{quiz.title}</h4>
+          <p className="text-gray-300 text-xs mb-2 line-clamp-2">{quiz.description}</p>
+          <div className="flex justify-between items-center">
+            <div className="text-xs text-gray-400 bg-gray-600/50 px-2 py-1 rounded-full">
+              {quiz.questions.length}q • {quiz.difficulty}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleCustomQuizStart(quiz)}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-3 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+              >
+                🎮 Play
+              </button>
+              <button
+                onClick={() => {
+                  setQuizToEdit(quiz);
+                  setShowCreationTool(true);
+                }}
+                className="bg-yellow-500 hover:bg-yellow-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+              >
+                ✏️ Edit
+              </button>
+              <button
+                onClick={() => handleDeleteQuiz(quiz.id)}
+                className="bg-red-500 hover:bg-red-400 text-white px-3 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105"
+              >
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
             {customQuizzes.length > 3 && (
               <div className="text-center text-gray-400 text-xs">
                 +{customQuizzes.length - 3} more quizzes
@@ -227,11 +251,32 @@ const QuizSelector = ({ onStart, loading, error }) => {
     {/* Quiz Creation Tool Modal */}
     {showCreationTool && (
       <QuizCreationTool
-        onSaveQuiz={handleQuizCreated}
-        onClose={() => setShowCreationTool(false)}
-        theme="dark" // You could pass this as a prop
+        onSaveQuiz={(newOrEditedQuiz) => {
+          if (quizToEdit) {
+            // Update existing quiz
+            const updatedQuizzes = customQuizzes.map(q =>
+              q.id === newOrEditedQuiz.id ? newOrEditedQuiz : q
+            );
+            setCustomQuizzes(updatedQuizzes);
+            localStorage.setItem('custom-quizzes', JSON.stringify(updatedQuizzes));
+            setQuizToEdit(null);
+          } else {
+            // Add new quiz
+            const updatedQuizzes = [...customQuizzes, newOrEditedQuiz];
+            setCustomQuizzes(updatedQuizzes);
+            localStorage.setItem('custom-quizzes', JSON.stringify(updatedQuizzes));
+          }
+          setShowCreationTool(false);
+        }}
+        onClose={() => {
+          setShowCreationTool(false);
+          setQuizToEdit(null);
+        }}
+        quizToEdit={quizToEdit} // Pass it down
+        theme="dark"
       />
     )}
+
   </div>
   );
 };

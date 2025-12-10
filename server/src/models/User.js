@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String },
   
   // Legacy Auth0 support (optional, for migration)
+  // Note: Not unique - multiple users can have null/undefined auth0Sub
   auth0Sub: { type: String, index: true, sparse: true },
   
   // User properties
@@ -26,17 +27,29 @@ const userSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
-// Hash password before saving
+// Normalize and hash before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
+  // Normalize email to lowercase and trim
+  if (this.isModified('email') && this.email) {
+    this.email = this.email.toLowerCase().trim();
   }
+  
+  // Normalize username (trim only, keep case for username)
+  if (this.isModified('username') && this.username) {
+    this.username = this.username.trim();
+  }
+  
+  // Hash password if modified
+  if (this.isModified('password')) {
+    try {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (error) {
+      return next(error);
+    }
+  }
+  
+  next();
 });
 
 // Method to compare password

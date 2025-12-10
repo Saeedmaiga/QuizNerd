@@ -94,7 +94,10 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
     try {
         const res = await fetch(`${API_ENDPOINTS.FRIENDS}/request`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           userId: userId,
           friendId: friendId,
@@ -356,7 +359,7 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
                 <div className="space-y-2">
                   {searchResult.users.map((user) => (
                     <div
-                      key={user.auth0Sub}
+                      key={user.userId}
                       className="p-4 bg-gray-800/70 border border-gray-700 rounded-xl flex items-center justify-between shadow-md"
                     >
                       <div className="flex items-center gap-3">
@@ -371,7 +374,7 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
                         </div>
                       </div>
                       <button
-                        onClick={() => handleAddFriend(user.auth0Sub)}
+                        onClick={() => handleAddFriend(user.userId)}
                         disabled={loadingAdd}
                         className={`px-3 py-1 rounded-lg hover:scale-105 transition-transform ${
                           loadingAdd

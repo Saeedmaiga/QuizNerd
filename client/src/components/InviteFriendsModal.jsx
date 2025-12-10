@@ -6,7 +6,8 @@ export default function InviteFriendsModal({
   userId, 
   onClose, 
   theme, 
-  themeClasses 
+  themeClasses,
+  token
 }) {
   const [friends, setFriends] = useState([]);
   const [selectedFriends, setSelectedFriends] = useState([]);
@@ -19,8 +20,15 @@ export default function InviteFriendsModal({
   }, [userId]);
 
   const loadFriends = async () => {
+    if (!token) {
+      console.error('No token provided');
+      setLoading(false);
+      return;
+  }
     try {
-              const response = await fetch(`${API_ENDPOINTS.FRIENDS}?userId=${userId}`);
+        const response = await fetch(`${API_ENDPOINTS.FRIENDS}?userId=${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
       if (response.ok) {
         const data = await response.json();
         setFriends(data.friends || []);
