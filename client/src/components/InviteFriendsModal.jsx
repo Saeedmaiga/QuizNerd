@@ -26,7 +26,7 @@ export default function InviteFriendsModal({
       return;
   }
     try {
-        const response = await fetch(`${API_ENDPOINTS.FRIENDS}?userId=${userId}`, {
+        const response = await fetch(`${API_ENDPOINTS.FRIENDS}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
       if (response.ok) {
@@ -60,7 +60,10 @@ export default function InviteFriendsModal({
     try {
       const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/invite`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           sessionCode,
           userId,

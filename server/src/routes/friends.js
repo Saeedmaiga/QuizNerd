@@ -274,7 +274,8 @@ router.post('/decline', authenticateRequest, async (req, res, next) => {
 // Get all friends
 router.get('/', authenticateRequest, async (req, res, next) => {
   try {
-    const { userId } = req.query;
+    // Use authenticated user from middleware (more secure)
+    const userId = req.userId;
     
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
@@ -307,7 +308,8 @@ router.get('/', authenticateRequest, async (req, res, next) => {
 // Remove friend
 router.delete('/:friendId', authenticateRequest, async (req, res, next) => {
   try {
-    const { userId } = req.body;
+    // Use authenticated user from middleware (more secure)
+    const userId = req.userId;
     const { friendId } = req.params;
     
     if (!userId) {
@@ -333,16 +335,13 @@ router.delete('/:friendId', authenticateRequest, async (req, res, next) => {
     );
     await friend.save();
     
-    // Update or delete friend requests
-    await FriendRequest.updateMany(
-      {
-        $or: [
-          { requester: user._id, recipient: friend._id },
-          { requester: friend._id, recipient: user._id }
-        ]
-      },
-      { status: 'CANCELLED' }
-    );
+    // Delete friend requests completely (not just cancel) so they can be re-added
+    await FriendRequest.deleteMany({
+      $or: [
+        { requester: user._id, recipient: friend._id },
+        { requester: friend._id, recipient: user._id }
+      ]
+    });
     
     res.json({ message: 'Friend removed successfully' });
   } catch (error) {

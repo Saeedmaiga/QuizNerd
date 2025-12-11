@@ -295,10 +295,12 @@ router.post('/leave/:sessionCode', async (req, res, next) => {
 // Invite friends to session
 router.post('/invite', authenticateRequest, async (req, res, next) => {
   try {
-    const { sessionCode, userId, friendIds } = req.body;
+    const { sessionCode, friendIds } = req.body;
+    // Use authenticated user from middleware (more secure)
+    const userId = req.userId;
     
-    if (!sessionCode || !userId || !friendIds || !Array.isArray(friendIds)) {
-      return res.status(400).json({ error: 'Session code, user ID, and friend IDs array are required' });
+    if (!sessionCode || !friendIds || !Array.isArray(friendIds) || friendIds.length === 0) {
+      return res.status(400).json({ error: 'Session code and friend IDs array are required' });
     }
     
     const session = await MultiplayerSession.findOne({ sessionCode });
@@ -508,7 +510,9 @@ router.get('/public-sessions', async (req, res, next) => {
 // Join a random public session
 router.post('/join-public', authenticateRequest, async (req, res, next) => {
   try {
-    const { userId, username } = req.body;
+    // Use authenticated user info from middleware (more secure)
+    const userId = req.userId;
+    const username = req.username || req.user?.username;
     
     if (!userId || !username) {
       return res.status(400).json({ error: 'User ID and username are required' });

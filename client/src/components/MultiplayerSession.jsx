@@ -25,7 +25,6 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
     }
 
     try {
-      console.log('Creating session with:', { userId, username, quizConfig });
       const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/create`, {
         method: 'POST',
         headers: { 
@@ -47,10 +46,8 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
       }
 
       const data = await response.json();
-      console.log('Session created:', data);
       onSessionCreated(data.sessionCode, data.sessionId, quizConfig);
     } catch (err) {
-      console.error('Error creating session:', err);
       setError(err.message || 'Failed to create session. Please make sure the server is running.');
     } finally {
       setLoading(false);
@@ -98,14 +95,20 @@ export default function MultiplayerSession({ userId, username, onSessionCreated,
     setLoading(true);
     setError(null);
 
+    if (!userId || !username) {
+      setError('User information missing. Please make sure you are logged in.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_ENDPOINTS.MULTIPLAYER}/join-public`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          username,
-        }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({}), // Server uses authenticated user from token
       });
 
       if (!response.ok) {

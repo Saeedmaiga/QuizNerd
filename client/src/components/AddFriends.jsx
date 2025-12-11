@@ -10,6 +10,7 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [showRequests, setShowRequests] = useState(false);
+  const [selectedFriendForStats, setSelectedFriendForStats] = useState(null);
 
   // Load friends and pending requests
   useEffect(() => {
@@ -177,6 +178,12 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
     }
   }
 
+  // Show friend stats
+  function handleShowFriendStats(friend) {
+    playSound();
+    setSelectedFriendForStats(friend);
+  }
+
   // Remove friend
   async function handleRemoveFriend(friendId) {
     playSound();
@@ -189,7 +196,6 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
             "Content-Type": "application/json",
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ userId: userId }),
         });
 
       if (res.ok) {
@@ -303,18 +309,26 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
                       key={friend.userId}
                       className="bg-white/10 border border-white/20 backdrop-blur-lg p-4 rounded-xl shadow-lg flex justify-between items-center hover:scale-[1.02] transition-all"
                     >
-                      <div>
+                      <div className="flex-1">
                         <p className="text-white font-semibold">
                           {friend.username || friend.name || 'Unknown User'}
                         </p>
                         <p className="text-gray-300 text-sm">{friend.email || ''}</p>
                       </div>
-                      <button
-                        onClick={() => handleRemoveFriend(friend.userId)}
-                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition"
-                      >
-                        Remove
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleShowFriendStats(friend)}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition"
+                        >
+                          Stats
+                        </button>
+                        <button
+                          onClick={() => handleRemoveFriend(friend.userId)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -406,6 +420,39 @@ export default function AddFriends({ onBack, themeClasses, playSound, userId, us
           </div>
         </div>
       </div>
+
+      {/* Friend Stats Modal */}
+      {selectedFriendForStats && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setSelectedFriendForStats(null)}>
+          <div className="bg-gray-900/90 backdrop-blur-xl text-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-gray-700/50" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-2xl font-bold">
+                📊 {selectedFriendForStats.username || selectedFriendForStats.name || 'Friend'}'s Stats
+              </h3>
+              <button 
+                className="text-gray-400 hover:text-white text-2xl transition-colors" 
+                onClick={() => setSelectedFriendForStats(null)}
+              >
+                ✖
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-gray-800/60 rounded-xl p-4 text-center">
+                <p className="text-gray-400 text-sm mb-2">Friend Statistics</p>
+                <p className="text-gray-300">
+                  Stats feature coming soon! Friend statistics will be displayed here.
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedFriendForStats(null)}
+                className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg font-semibold transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
