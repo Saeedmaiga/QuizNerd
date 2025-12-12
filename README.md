@@ -1,4 +1,4 @@
-# 🧠 QuizNerds
+#  QuizNerds
 
 A modern, feature-rich quiz application built with React and Node.js. QuizNerds offers an engaging quiz experience with multiplayer sessions, achievements, daily challenges, power-ups, custom quiz creation, and a social friends system.
 
@@ -9,7 +9,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
@@ -24,9 +24,9 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 
 ---
 
-## ✨ Features
+##  Features
 
-### 🎮 Core Quiz Features
+###  Core Quiz Features
 - **Multiple Question Sources**: OpenTDB, Trivia API, and custom user-created quizzes
 - **Difficulty Levels**: Easy, Medium, Hard
 - **Categories**: Science, History, Geography, Entertainment, Sports, and more
@@ -34,7 +34,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 - **Progress Tracking**: Visual progress bar and real-time completion percentage
 - **Answer Review**: Detailed review of all answers with explanations
 
-### 🎯 Gamification
+###  Gamification
 - **Achievement System**: 12+ achievements with different rarities (Common, Rare, Epic, Legendary)
 - **XP & Leveling**: Progressive leveling system with titles and rewards
 - **Daily Challenges**: Special themed quizzes with bonus rewards
@@ -51,7 +51,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 - **Real-time Leaderboard**: Live score tracking during multiplayer games
 - **Friend Stats**: View friend statistics (coming soon)
 
-### 🎨 Modern UI/UX
+###  Modern UI/UX
 - **Glassmorphism Design**: Modern glass-like effects with backdrop blur
 - **Dark/Light Themes**: Toggle between themes with smooth transitions
 - **Responsive Layout**: Fully responsive design for all devices
@@ -59,21 +59,21 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 - **Sound Effects**: Audio feedback for actions, correct/wrong answers, and background music
 - **Loading States**: Beautiful loading spinners and skeleton screens
 
-### 📚 Learning Features
+###  Learning Features
 - **Learning Mode**: Detailed explanations for wrong answers
 - **Answer Review**: Comprehensive review modal after quiz completion
 - **Custom Quiz Creation**: Create, edit, and delete your own quizzes
 - **Statistics Tracking**: Performance analytics, history, and progress tracking
 - **Category Performance**: Track performance by category
 
-### 🔐 Authentication & Security
+###  Authentication & Security
 - **JWT Authentication**: Secure token-based authentication
 - **Email Verification**: Email verification system for account security
 - **Password Hashing**: Bcrypt password hashing
 - **Protected Routes**: Middleware-based route protection
 - **Rate Limiting**: API rate limiting for security
 
-### 🛠️ Custom Quiz Features
+###  Custom Quiz Features
 - **Quiz Builder**: Intuitive quiz creation tool
 - **Edit & Delete**: Full CRUD operations for custom quizzes
 - **Question Types**: Multiple choice, multi-select, and true/false questions
@@ -82,7 +82,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **React 19.1.0** - Modern React with latest features
@@ -109,7 +109,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -166,7 +166,7 @@ A modern, feature-rich quiz application built with React and Node.js. QuizNerds 
 
 ---
 
-## 🔐 Environment Variables
+##  Environment Variables
 
 Create a `.env` file in the `server` directory with the following variables:
 
@@ -209,7 +209,7 @@ If you want email verification to work:
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 react-quiz-app-main/
@@ -264,7 +264,7 @@ react-quiz-app-main/
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 ### Authentication
 - `POST /api/users/register` - Register a new user
@@ -313,7 +313,7 @@ react-quiz-app-main/
 
 ---
 
-## 📖 Usage Guide
+##  Usage Guide
 
 ### Registration & Login
 1. Click "Register" on the login screen
@@ -377,7 +377,7 @@ react-quiz-app-main/
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+##  Keyboard Shortcuts
 
 - **1-4**: Select answer options (1 = first option, 2 = second, etc.)
 - **H**: Use hint
@@ -387,7 +387,7 @@ react-quiz-app-main/
 
 ---
 
-## 🏆 Achievements
+##  Achievements
 
 Unlock achievements by completing various challenges:
 
@@ -403,7 +403,7 @@ Unlock achievements by completing various challenges:
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -432,7 +432,7 @@ Unlock achievements by completing various challenges:
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -450,13 +450,13 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## 📝 License
+##  License
 
 This project is licensed under the MIT License.
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **OpenTDB** - Open Trivia Database for quiz questions
 - **The Trivia API** - Additional trivia questions
@@ -467,19 +467,19 @@ This project is licensed under the MIT License.
 
 ---
 
-## 👥 Authors
+##  Authors
 
-**QuizNerds** - Made with ❤️ by:
+**QuizNerds** - Made by:
 - Saeed Maiga
 - Evan Boyle
 - Simon Engman
 
 ---
 
-## 📧 Support
+##  Support
 
 For issues, questions, or suggestions, please open an issue on GitHub.
 
 ---
 
-**Happy Quizzing! 🎉**
+## Hope you enjoy!
